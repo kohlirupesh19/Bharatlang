@@ -85,6 +85,8 @@ async def chat_text(req: ChatRequest, db: Session = Depends(get_db)):
         "is_sufficient_evidence": rag_result["is_sufficient_evidence"],
         "unverified_numbers": rag_result.get("unverified_numbers", []),
         "abstention_reason": rag_result.get("abstention_reason"),
+        "answer_language": rag_result.get("answer_language"),
+        "language_retried": rag_result.get("language_retried", False),
         "audio_url": audio_info.get("audio_url") if audio_info else None,
         "tts_status": audio_info.get("success", False) if audio_info else False,
         "latency_ms": round(total_latency_ms, 2)
@@ -190,6 +192,8 @@ async def chat_voice(
             "is_sufficient_evidence": rag_result["is_sufficient_evidence"],
             "unverified_numbers": rag_result.get("unverified_numbers", []),
             "abstention_reason": rag_result.get("abstention_reason"),
+            "answer_language": rag_result.get("answer_language"),
+            "language_retried": rag_result.get("language_retried", False),
             "audio_url": audio_info.get("audio_url") if audio_info else None,
             "tts_status": audio_info.get("success", False) if audio_info else False,
             "latency_ms": round(total_latency_ms, 2)

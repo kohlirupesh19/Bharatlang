@@ -35,7 +35,8 @@ class OllamaClient:
         query: str,
         retrieved_chunks: List[Dict[str, Any]],
         language: str = "mr",
-        original_query: Optional[str] = None
+        original_query: Optional[str] = None,
+        extra_instruction: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Generates an evidence-grounded structured response from retrieved document chunks.
@@ -46,7 +47,8 @@ class OllamaClient:
             query_language=language,
             max_chunks=settings.LLM_CONTEXT_CHUNKS,
             max_chars_per_chunk=settings.LLM_CONTEXT_CHARS_PER_CHUNK,
-            original_query=original_query
+            original_query=original_query,
+            extra_instruction=extra_instruction
         )
         start_time = time.time()
 

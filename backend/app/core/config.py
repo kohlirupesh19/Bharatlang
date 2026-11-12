@@ -86,6 +86,9 @@ class Settings(BaseSettings):
     # TABLE_LOOKUP_MAX_CHUNKS of them ahead of the semantic results (services/rag/table_lookup.py).
     TABLE_LOOKUP_ENABLED: bool = True
     TABLE_LOOKUP_MAX_CHUNKS: int = Field(default=2, ge=1)
+    # Retry once with an explicit "Marathi only" instruction when a Marathi question gets a
+    # Hindi or English answer; flag it if the retry also fails (services/rag/answer_language.py).
+    ANSWER_LANGUAGE_CHECK_ENABLED: bool = True
 
     # Text-to-Speech
     TTS_VOICE: str = "mr-IN-AarohiNeural"

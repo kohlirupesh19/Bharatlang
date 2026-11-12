@@ -63,13 +63,15 @@ def build_rag_prompt(
     query_language: str = "mr",
     max_chunks: int = DEFAULT_CONTEXT_CHUNKS,
     max_chars_per_chunk: int = DEFAULT_CONTEXT_CHARS_PER_CHUNK,
-    original_query: Optional[str] = None
+    original_query: Optional[str] = None,
+    extra_instruction: Optional[str] = None
 ) -> str:
     """
     Constructs the prompt combining the top retrieved chunks with clear source attribution.
     `user_query` is the normalized (standard Marathi) question; `original_query` is the
     citizen's own wording and is shown alongside when it differs, so a wrong
-    normalization cannot hide what was actually asked.
+    normalization cannot hide what was actually asked. `extra_instruction` goes last, where
+    small models weigh it most (used by the answer-language retry).
     """
     # Devanagari numerals reach the LLM as ASCII digits: local models misread them otherwise
     # (६१००० was answered as "६,१००"). Citizens still see the original text in the excerpts.
@@ -102,4 +104,6 @@ def build_rag_prompt(
 
 वरील अधिकृत संदर्भाच्या आधारे नेमके, सत्य उत्तर द्या (Answer strictly from context above):"""
 
+    if extra_instruction:
+        prompt = f"{prompt}\n\n{extra_instruction.strip()}"
     return prompt
