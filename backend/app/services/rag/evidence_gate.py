@@ -12,8 +12,10 @@ context of a table and its `पीक:` cells), never from prose: every GR's let
 - A chunk covers the question when, per enforced dimension: its document is scoped on that
   dimension and its cells name the asked entity; or its document is not (a state-wide GR),
   which covers any district but covers a crop only if the chunk's text names it.
-- If what remains does not cover every district (× crop) the question names, the answer is
-  a fixed refusal and the LLM is not called.
+- If what remains does not cover every district (× crop) the question asks about, the answer
+  is a fixed refusal and the LLM is not called. Only the asked entities count
+  (`EntityLexicon.find_asked`): those mentioned as context ("we grow jowar and tur … what is
+  the jowar premium?") neither trigger a refusal nor keep their tables in the evidence.
 """
 from dataclasses import dataclass, field
 from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Sequence, Tuple
@@ -108,16 +110,20 @@ def check_evidence(question: str, chunks: Iterable[Chunk], lexicon: EntityLexico
                    corpus: CorpusScope = CorpusScope()) -> GateDecision:
     """Decide whether the retrieved chunks can answer a question that names a district/crop."""
     chunks = tuple(chunks)
-    asked = lexicon.find(question)
+    asked = lexicon.find_asked(question)  # context mentions ("we also grow tur") are not enforced
     evidence: List[_Evidence] = [_evidence(c, lexicon, corpus) for c in chunks]
+    # A district × crop question answered from a document with district × crop tables needs the
+    # crop's row, even when retrieval only returned that document's crop-less summary tables
+    # (PMFBY p109 lists districts with crops as column names: read-aloud V06, pomegranate).
+    rate_tables = bool(asked.districts) and any(e.district_doc and e.crop_doc for e in evidence)
     need_d = bool(asked.districts) and any(e.scope.districts for e in evidence)
-    need_k = bool(asked.crops) and any(e.scope.crops for e in evidence)
+    need_k = bool(asked.crops) and (rate_tables or any(e.scope.crops for e in evidence))
     if not (need_d or need_k):
         return GateDecision(abstain=False, chunks=chunks)
 
     kept = [e for e in evidence if not _dropped(e, asked, need_d, need_k)]
     # Pairs must co-occur in one chunk when the evidence has district-and-crop tables.
-    joint = need_d and need_k and any(e.scope.districts and e.scope.crops for e in evidence)
+    joint = need_d and need_k and (rate_tables or any(e.scope.districts and e.scope.crops for e in evidence))
     missing = _missing(asked, kept, need_d, need_k, joint)
     if missing:
         return GateDecision(abstain=True, chunks=(), missing=missing)

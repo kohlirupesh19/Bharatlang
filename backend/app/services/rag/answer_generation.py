@@ -50,7 +50,7 @@ def retrieve_evidence(queries: List[str]) -> List[Dict[str, Any]]:
     if not settings.TABLE_LOOKUP_ENABLED:
         return semantic
     index = current_evidence_index()
-    positions = index.tables.positions_for(index.lexicon.find(" ".join(queries)))
+    positions = index.tables.positions_for(index.lexicon.find_asked(" ".join(queries)))
     if not positions:
         return semantic
     lookups = faiss_retriever.score_positions(queries, positions)

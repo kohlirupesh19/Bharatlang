@@ -134,18 +134,121 @@ def _token_matches(token: str, form: str) -> bool:
     return token.startswith(form) and token[len(form):] in _SUFFIXES
 
 
-def _match(words: List[str], forms: Forms) -> FrozenSet[str]:
-    found, i = set(), 0
+Mention = Tuple[int, int, str]  # first token, end token (exclusive), canonical name
+
+
+def _mentions(words: List[str], forms: Forms) -> List[Mention]:
+    """Every entity mention, in order of appearance."""
+    found: List[Mention] = []
+    i = 0
     while i < len(words):
         for form, canonical in forms:
             n = len(form)
             if words[i:i + n - 1] == list(form[:-1]) and i + n <= len(words) and _token_matches(words[i + n - 1], form[-1]):
-                found.add(canonical)
+                found.append((i, i + n, canonical))
                 i += n
                 break
         else:
             i += 1
-    return frozenset(found)
+    return found
+
+
+def _match(words: List[str], forms: Forms) -> FrozenSet[str]:
+    return frozenset(canonical for _, _, canonical in _mentions(words, forms))
+
+
+# Words that mark the actual question (standard Marathi and Varhadi), and list conjunctions.
+QUESTION_WORDS = ("किती", "कितला", "कितली", "कितले", "कोणत्या", "कोणता", "कोणती", "कोणते",
+                  "काय", "कधी", "कुठे", "कसे", "कसा", "कशी", "का")
+CONJUNCTIONS = ("आणि", "व", "किंवा", "अन्", "अन", "तसेच")
+_QUESTION_WORDS: FrozenSet[str] = frozenset(fold(w) for w in QUESTION_WORDS)
+_CONJUNCTIONS: FrozenSet[str] = frozenset(fold(w) for w in CONJUNCTIONS)
+
+
+# Words after a mention that mark it as backstory, not as what is asked ("ज्वारी आणि तूर घेतो",
+# "हरभरा पेरतो", "भात आणि नाचणी होते", "केळीची बाग नाही"). Matched as token prefixes. The
+# copula आहे is deliberately absent: "ठाण्यात सोयाबीन आहे आणि नाशिकमध्ये कांदा, हप्ता किती?" asks both.
+CROP_BACKSTORY = ("घेतो", "घेतात", "घेतल", "लावतो", "लावतात", "लावल", "लावून", "करतो", "करतात", "केले",
+                  "केली", "केला", "पेरतो", "पेरतात", "पेरल", "पेरणार", "पिकवतो", "पिकवतात", "काढल",
+                  "होते", "होता", "होती", "नाही", "न्हाई")
+DISTRICT_BACKSTORY = ("राहतो", "राहतात", "राहते", "आलो", "आले")
+_CROP_BACKSTORY = tuple(fold(w) for w in CROP_BACKSTORY)
+# A farming verb also marks the place it follows as backstory ("लातूरला पाहुणे सोयाबीन घेतात").
+_DISTRICT_BACKSTORY = tuple(fold(w) for w in DISTRICT_BACKSTORY + CROP_BACKSTORY)
+_OF_PLACE = tuple(fold(w) for w in ("चा", "ची", "चे"))  # "मी नाशिकचा आहे": I am from Nashik
+_IS = frozenset(fold(w) for w in ("आहे", "हाय"))
+
+
+def _groups(mentions: List[Mention], words: List[str]) -> List[List[int]]:
+    """Mentions listed together: adjacent or joined by one conjunction ("नाशिक, ठाणे आणि पुणे")."""
+    groups: List[List[int]] = []
+    for i in range(len(mentions)):
+        gap = words[mentions[i - 1][1]:mentions[i][0]] if i else ["-"]
+        if i and (not gap or (len(gap) == 1 and gap[0] in _CONJUNCTIONS)):
+            groups[-1].append(i)
+        else:
+            groups.append([i])
+    return groups
+
+
+def _is_backstory(group: List[int], mentions: List[Mention], words: List[str],
+                  question_words: List[int], cues: Tuple[str, ...], places: bool) -> bool:
+    """Does a backstory cue follow the group before the next other entity or question word?"""
+    names = {mentions[i][2] for i in group}
+    end = mentions[group[-1]][1]
+    stops = [m[0] for m in mentions if m[0] >= end and m[2] not in names] + [q for q in question_words if q >= end]
+    window = words[end:min(stops, default=len(words))]
+    if places and window and window[0] in _IS and words[end - 1].endswith(_OF_PLACE):
+        return True
+    return any(w.startswith(cues) and _is_statement(end + k, words) for k, w in enumerate(window))
+
+
+_IF = frozenset(fold(w) for w in ("तर", "तरी"))
+_IF_ENDING = fold("ल्यास")  # लावल्यास, केल्यास: "if I plant…"
+_YES_NO = fold("का")
+
+
+def _is_statement(at: int, words: List[str]) -> bool:
+    """A cue states backstory unless it asks ("नाही का", "घेतो का") or sets a condition ("केले तर").
+
+    Only the particle directly after the cue counts: without punctuation, "पेरतो. पयशे कितले"
+    or "पिकवतो, किती" cannot be told from a question about the crop before it.
+    """
+    following = words[at + 1] if at + 1 < len(words) else ""
+    if words[at].endswith(_IF_ENDING):
+        return False
+    return following != _YES_NO and following not in _IF
+
+
+def _asked(mentions: List[Mention], words: List[str], question_words: List[int],
+           cues: Tuple[str, ...], places: bool) -> FrozenSet[str]:
+    """Mentions a question is about. Only mentions the sentence marks as backstory are left out.
+
+    - no question word: every mention is asked (nothing can be ruled out);
+    - the focus is every mention after the last question word ("किती हप्ता आहे ज्वारीचा"), else
+      the one nearest before it, with whatever is listed with it ("नाशिक आणि ठाणे"): always asked;
+    - any other entity is asked unless a backstory cue follows one of its mentions ("ज्वारी आणि
+      तूर घेतो"). Two pairs named before one question ("ठाण्यात सोयाबीन आणि नाशिकमध्ये कांदा …
+      किती") are both asked, so a missing one is refused rather than answered with the other's row.
+    """
+    if not question_words:
+        return frozenset(canonical for _, _, canonical in mentions)
+    last_q = question_words[-1]
+    after = [i for i, m in enumerate(mentions) if m[0] > last_q]
+    before = [i for i, m in enumerate(mentions) if m[1] <= last_q]
+    focus = set(after or before[-1:])
+    groups = _groups(mentions, words)
+    asked, backstory = set(), set()
+    for group in groups:
+        names = {mentions[i][2] for i in group}
+        if focus & set(group):
+            asked |= names
+        elif _is_backstory(group, mentions, words, question_words, cues, places):
+            backstory |= names
+        else:
+            asked |= names
+    focus_names = {mentions[i][2] for g in groups if focus & set(g) for i in g}
+    return frozenset(focus_names | (asked - backstory))
 
 
 @dataclass(frozen=True)
@@ -154,8 +257,23 @@ class EntityLexicon:
     crop_forms: Forms
 
     def find(self, text: str) -> Found:
+        """Every district and crop mentioned."""
         words = tokens(text)
         return Found(districts=_match(words, self.district_forms), crops=_match(words, self.crop_forms))
+
+    def find_asked(self, text: str) -> Found:
+        """The district(s) and crop(s) the question is about, not those given as context.
+
+        Farmers give context before the question ("…we grow jowar and tur … what is the jowar
+        premium?") and ASR output has no punctuation, so sentences cannot be used. The rule
+        (`_asked`) errs towards asking: an entity is left out only when the sentence marks it
+        as backstory, so a wrongly kept entity can cost a refusal but cannot let a trap through.
+        """
+        words = tokens(text)
+        question_words = [i for i, w in enumerate(words) if w in _QUESTION_WORDS]
+        return Found(
+            districts=_asked(_mentions(words, self.district_forms), words, question_words, _DISTRICT_BACKSTORY, True),
+            crops=_asked(_mentions(words, self.crop_forms), words, question_words, _CROP_BACKSTORY, False))
 
 
 def _crop_groups(texts: Iterable[str]) -> Dict[str, Tuple[str, ...]]:
