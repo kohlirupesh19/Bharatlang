@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 import numpy as np
 from typing import Optional, List
 from faster_whisper import WhisperModel
@@ -10,13 +11,29 @@ MARATHI_PROMPT_BIAS = "नमस्कार, मला शेतकरी क�
 
 class FasterWhisperEngine(ASREngine):
     """
-    High-performance Faster-Whisper ASR engine powered by CTranslate2.
-    Optimized for Apple Silicon CPU int8 quantization.
+    Faster-Whisper ASR engine powered by CTranslate2.
+
+    Stock models are named by size ("small"); fine-tuned models load from a local CT2
+    directory (`model_path`). Fine-tuned Marathi models were benchmarked without the
+    prompt bias and without conditioning on previous text, so they are decoded that way
+    (`prompt_bias=False`, `condition_on_previous_text=False`) to keep the measured WER valid.
     """
 
-    def __init__(self, model_size: str = "small", compute_type: str = "int8"):
+    def __init__(
+        self,
+        model_size: str = "small",
+        compute_type: str = "int8",
+        model_path: Optional[str] = None,
+        display_name: Optional[str] = None,
+        prompt_bias: bool = True,
+        condition_on_previous_text: bool = True,
+    ):
         self.model_size = model_size
         self.compute_type = compute_type
+        self.model_path = model_path
+        self.display_name = display_name or f"faster-whisper-{model_size}"
+        self.prompt_bias = prompt_bias
+        self.condition_on_previous_text = condition_on_previous_text
         self.model: Optional[WhisperModel] = None
         self._is_loaded = False
 
@@ -24,24 +41,30 @@ class FasterWhisperEngine(ASREngine):
         if self._is_loaded and self.model is not None:
             return
 
-        logger.info(f"Loading faster-whisper model '{self.model_size}' (compute_type={self.compute_type})...")
+        if self.model_path is not None and not Path(self.model_path).is_dir():
+            raise FileNotFoundError(
+                f"ASR model directory not found: {self.model_path}. "
+                "Convert the model with scripts/convert_whisper.py or pick another ASR_ACTIVE_MODEL."
+            )
+        source = self.model_path or self.model_size
+        device = settings.WHISPER_DEVICE
+        logger.info(f"Loading ASR model '{self.display_name}' from '{source}' (device={device}, compute_type={self.compute_type})...")
         t0 = time.time()
-        # On Apple Silicon M2, CPU int8 with CTranslate2 provides optimized low latency
         self.model = WhisperModel(
-            self.model_size,
-            device="cpu",
+            source,
+            device=device,
             compute_type=self.compute_type,
             cpu_threads=4
         )
         self._is_loaded = True
-        logger.info(f"Faster-whisper '{self.model_size}' loaded in {time.time() - t0:.2f}s")
+        logger.info(f"ASR model '{self.display_name}' loaded in {time.time() - t0:.2f}s")
 
     def unload_model(self) -> None:
         if self.model is not None:
             del self.model
             self.model = None
             self._is_loaded = False
-            logger.info(f"Faster-whisper '{self.model_size}' unloaded from memory.")
+            logger.info(f"ASR model '{self.display_name}' unloaded from memory.")
 
     def is_loaded(self) -> bool:
         return self._is_loaded and self.model is not None
@@ -60,13 +83,14 @@ class FasterWhisperEngine(ASREngine):
 
         # Target language mapping
         lang_code = "mr" if language in ["mr", "marathi", "mr-varhadi", "varhadi"] else ("hi" if language == "hi" else "en")
-        initial_prompt = MARATHI_PROMPT_BIAS if lang_code == "mr" else None
+        initial_prompt = MARATHI_PROMPT_BIAS if (lang_code == "mr" and self.prompt_bias) else None
 
         try:
             segments_gen, info = self.model.transcribe(
                 audio_array,
                 language=lang_code,
                 initial_prompt=initial_prompt,
+                condition_on_previous_text=self.condition_on_previous_text,
                 beam_size=5,
                 temperature=0.0,
                 vad_filter=True,
@@ -114,7 +138,7 @@ class FasterWhisperEngine(ASREngine):
                 detected_language=info.language or lang_code,
                 recognized_text=recognized_text,
                 segments=segments_list,
-                model_name=f"faster-whisper-{self.model_size}",
+                model_name=self.display_name,
                 model_version="1.2.1",
                 processing_duration_sec=round(duration, 3),
                 overall_confidence=round(overall_confidence, 3) if confidence_scores else None,

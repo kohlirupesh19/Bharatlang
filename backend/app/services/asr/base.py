@@ -3,6 +3,11 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 import numpy as np
 
+class ASRServiceError(RuntimeError):
+    """A remote ASR service (e.g. AssemblyAI) failed: network, auth, quota or a failed job.
+    The API maps it to HTTP 502 with this message, so it must never contain secrets."""
+
+
 @dataclass
 class TranscriptionSegment:
     id: int

@@ -10,6 +10,7 @@ from backend.app.database.session import get_db
 from backend.app.database.models import Conversation, Message
 from backend.app.services.rag.answer_generation import answer_government_scheme_query
 from backend.app.services.asr.manager import asr_manager
+from backend.app.services.asr.base import ASRServiceError
 from backend.app.services.tts.indic_tts import indic_tts
 from backend.app.services.translation.normalization import normalize_varhadi_to_marathi, detect_language_and_dialect
 from backend.app.utils.audio import preprocess_audio_to_numpy
@@ -82,6 +83,8 @@ async def chat_text(req: ChatRequest, db: Session = Depends(get_db)):
         "answer": rag_result["answer"],
         "sources": rag_result["sources"],
         "is_sufficient_evidence": rag_result["is_sufficient_evidence"],
+        "unverified_numbers": rag_result.get("unverified_numbers", []),
+        "abstention_reason": rag_result.get("abstention_reason"),
         "audio_url": audio_info.get("audio_url") if audio_info else None,
         "tts_status": audio_info.get("success", False) if audio_info else False,
         "latency_ms": round(total_latency_ms, 2)
@@ -119,7 +122,11 @@ async def chat_voice(
             )
 
         active_asr = asr_manager.get_active_engine()
-        asr_result = active_asr.transcribe(audio_array, language=language, audio_identifier=safe_filename)
+        try:
+            asr_result = active_asr.transcribe(audio_array, language=language, audio_identifier=safe_filename)
+        except ASRServiceError as e:
+            logger.error(f"Remote ASR service failed: {e}")
+            raise HTTPException(status_code=502, detail=str(e))
 
         if not asr_result.recognized_text.strip():
             return {
@@ -181,6 +188,8 @@ async def chat_voice(
             "answer": rag_result["answer"],
             "sources": rag_result["sources"],
             "is_sufficient_evidence": rag_result["is_sufficient_evidence"],
+            "unverified_numbers": rag_result.get("unverified_numbers", []),
+            "abstention_reason": rag_result.get("abstention_reason"),
             "audio_url": audio_info.get("audio_url") if audio_info else None,
             "tts_status": audio_info.get("success", False) if audio_info else False,
             "latency_ms": round(total_latency_ms, 2)

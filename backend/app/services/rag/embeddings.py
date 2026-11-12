@@ -16,8 +16,7 @@ class EmbeddingEngine:
         self.model_name = model_name
         self.model: Optional[SentenceTransformer] = None
         self._is_loaded = False
-        # MPS or CPU
-        self.device = "mps" if torch.backends.mps.is_available() else "cpu"
+        self.device = settings.EMBEDDING_DEVICE
 
     def load_model(self) -> None:
         if self._is_loaded and self.model is not None:

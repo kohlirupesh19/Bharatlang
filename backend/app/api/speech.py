@@ -3,6 +3,7 @@ import time
 import tempfile
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
 from backend.app.services.asr.manager import asr_manager
+from backend.app.services.asr.base import ASRServiceError
 from backend.app.services.translation.normalization import normalize_varhadi_to_marathi, detect_language_and_dialect
 from backend.app.utils.audio import preprocess_audio_to_numpy
 from backend.app.core.security import validate_audio_file, sanitize_filename
@@ -93,6 +94,9 @@ async def transcribe_audio(
                 } for s in result.segments
             ]
         }
+    except ASRServiceError as e:
+        logger.error(f"Remote ASR service failed: {e}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
     except Exception as e:
         logger.error(f"Speech transcription failed: {e}")
         raise HTTPException(

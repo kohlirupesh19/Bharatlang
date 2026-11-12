@@ -85,7 +85,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <span>Active</span>
               </span>
             </div>
-            <p className="text-base font-extrabold text-slate-900">faster-whisper</p>
+            <p className="text-base font-extrabold text-slate-900">
+              {systemHealth?.services.asr_engine.active_engine ?? '—'}
+            </p>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
               {t.home.statusAsrDesc}
             </p>

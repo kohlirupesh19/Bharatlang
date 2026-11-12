@@ -1,7 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
+from backend.app.database.session import init_db
 from backend.app.main import app
 
+# TestClient(app) without a `with` block skips the startup hook that creates the
+# tables, so create them explicitly instead of relying on a leftover local DB file.
+init_db()
 client = TestClient(app)
 
 def test_health_check_scenario_6():

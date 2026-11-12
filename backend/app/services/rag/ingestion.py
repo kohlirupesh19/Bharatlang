@@ -65,8 +65,8 @@ def ingest_pdf_document(
             doc_id=doc_record.id,
             title=doc_record.title,
             issuing_authority=doc_record.issuing_authority,
-            chunk_size=500,
-            chunk_overlap=100
+            chunk_size=settings.CHUNK_SIZE_CHARS,
+            chunk_overlap=settings.CHUNK_OVERLAP_CHARS
         )
 
         if not chunks:

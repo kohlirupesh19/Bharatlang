@@ -34,12 +34,20 @@ class OllamaClient:
         self,
         query: str,
         retrieved_chunks: List[Dict[str, Any]],
-        language: str = "mr"
+        language: str = "mr",
+        original_query: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Generates an evidence-grounded structured response from retrieved document chunks.
         """
-        prompt = build_rag_prompt(query, retrieved_chunks, query_language=language)
+        prompt = build_rag_prompt(
+            query,
+            retrieved_chunks,
+            query_language=language,
+            max_chunks=settings.LLM_CONTEXT_CHUNKS,
+            max_chars_per_chunk=settings.LLM_CONTEXT_CHARS_PER_CHUNK,
+            original_query=original_query
+        )
         start_time = time.time()
 
         # Check Ollama connectivity
@@ -53,11 +61,12 @@ class OllamaClient:
             "system": SYSTEM_SCHEME_RAG_PROMPT,
             "prompt": prompt,
             "stream": False,
+            "think": settings.OLLAMA_THINK,
             "options": {
                 "temperature": 0.1,  # Low temperature to strictly minimize hallucination
                 "top_p": 0.85,
-                "num_ctx": 1536,
-                "num_predict": 350
+                "num_ctx": settings.OLLAMA_NUM_CTX,
+                "num_predict": settings.OLLAMA_NUM_PREDICT
             }
         }
 

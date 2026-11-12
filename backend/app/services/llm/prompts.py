@@ -1,3 +1,10 @@
+from typing import Optional
+
+from backend.app.services.rag.numeric_guard import normalize_digits
+
+DEFAULT_CONTEXT_CHUNKS = 4
+DEFAULT_CONTEXT_CHARS_PER_CHUNK = 600
+
 SYSTEM_SCHEME_RAG_PROMPT = """You are BharatLangTech AI, an evidence-grounded multilingual assistant for Indian government schemes and agricultural policies.
 You strictly adhere to evidence retrieved from official government documents.
 
@@ -40,28 +47,58 @@ Information not available:
 Disclaimer: BharatLangTech AI provides informational assistance based on indexed official documents and is not an official government authority. Please verify with your local Taluka Agriculture Officer or Gram Panchayat.
 """
 
-def build_rag_prompt(user_query: str, retrieved_chunks: list[dict], query_language: str = "mr") -> str:
+
+def _truncate_at_word(text: str, max_chars: int) -> str:
+    """Cuts text to max_chars without ending in the middle of a word."""
+    if len(text) <= max_chars:
+        return text
+    cut = text[:max_chars]
+    last_space = cut.rfind(" ")
+    return (cut[:last_space] if last_space > 0 else cut) + "…"
+
+
+def build_rag_prompt(
+    user_query: str,
+    retrieved_chunks: list[dict],
+    query_language: str = "mr",
+    max_chunks: int = DEFAULT_CONTEXT_CHUNKS,
+    max_chars_per_chunk: int = DEFAULT_CONTEXT_CHARS_PER_CHUNK,
+    original_query: Optional[str] = None
+) -> str:
     """
-    Constructs the prompt combining top retrieved chunks with clear source attribution.
-    Optimized for low-latency inference on Apple Silicon.
+    Constructs the prompt combining the top retrieved chunks with clear source attribution.
+    `user_query` is the normalized (standard Marathi) question; `original_query` is the
+    citizen's own wording and is shown alongside when it differs, so a wrong
+    normalization cannot hide what was actually asked.
     """
+    # Devanagari numerals reach the LLM as ASCII digits: local models misread them otherwise
+    # (६१००० was answered as "६,१००"). Citizens still see the original text in the excerpts.
     context_blocks = []
-    # Take top 2 most relevant chunks, max 350 chars each for fast local inference
-    for i, chunk in enumerate(retrieved_chunks[:2], 1):
+    for i, chunk in enumerate(retrieved_chunks[:max_chunks], 1):
         doc_title = chunk.get("title", "Government Document")
         page = chunk.get("page", 1)
-        text = chunk.get("text", "").strip()[:350]
+        text = chunk.get("text", "").strip()
+        if text.startswith(doc_title):
+            text = text[len(doc_title):].lstrip()  # already named in the [दस्तऐवज …] header
+        text = normalize_digits(_truncate_at_word(text, max_chars_per_chunk))
         context_blocks.append(
             f"[दस्तऐवज {i}: {doc_title}, पृष्ठ: {page}]\n{text}"
         )
 
     full_context = "\n\n".join(context_blocks) if context_blocks else "कोणताही संदर्भ सापडला नाही."
 
+    question_block = normalize_digits(user_query)
+    if original_query and original_query.strip() and original_query.strip() != user_query.strip():
+        question_block = (
+            f"{question_block}\n"
+            f"(नागरिकाचे मूळ शब्द / Citizen's original wording: {normalize_digits(original_query.strip())})"
+        )
+
     prompt = f"""संदर्भ (Retrieved Context):
 {full_context}
 
 प्रश्न (User Question):
-{user_query}
+{question_block}
 
 वरील अधिकृत संदर्भाच्या आधारे नेमके, सत्य उत्तर द्या (Answer strictly from context above):"""
 
