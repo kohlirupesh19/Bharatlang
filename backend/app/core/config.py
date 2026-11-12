@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     # CTranslate2 supports only "cpu" or "cuda". CPU by default: on an 8 GB card the
     # Ollama LLM already holds most of the VRAM.
     WHISPER_DEVICE: Literal["cpu", "cuda"] = "cpu"
+    # Audio longer than this is decoded in pause-delimited pieces of at most this length:
+    # one 30 s Whisper window holds only ~220 Marathi characters, so longer questions lost
+    # their end (services/asr/long_audio.py). Shorter audio is decoded whole, as before.
+    ASR_MAX_PIECE_SEC: float = Field(default=14.0, ge=5.0, le=28.0)
     # Query embedding is one short text per request (~20 ms on CPU); keeping it off the
     # GPU saves ~0.6 GB of VRAM (mostly the PyTorch CUDA context) for the LLM + Whisper.
     EMBEDDING_DEVICE: str = Field(default_factory=_detect_device)
