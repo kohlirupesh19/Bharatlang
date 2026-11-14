@@ -194,4 +194,14 @@ scripts/          setup and service scripts, OCR and scoring tools
 
 Built with [faster-whisper](https://github.com/SYSTRAN/faster-whisper), AI4Bharat's IndicWhisper (Vistaar) Marathi model, [Sentence-Transformers](https://sbert.net) (`intfloat/multilingual-e5-small`), [FAISS](https://github.com/facebookresearch/faiss), [Ollama](https://ollama.com) and [Qwen](https://huggingface.co/Qwen), Amazon Bedrock, [Surya OCR](https://github.com/datalab-to/surya), [Tesseract](https://github.com/tesseract-ocr/tesseract), [PyMuPDF](https://pymupdf.readthedocs.io/), [FastAPI](https://fastapi.tiangolo.com/) and [React](https://react.dev/).
 
-The original README stated an Apache 2.0 licence, but no LICENSE file is committed yet.
+---
+
+## Licence
+
+Licensed under the **Apache License, Version 2.0**: see [`LICENSE`](LICENSE). You may use, modify and redistribute this software, including commercially, provided you:
+
+- keep the copyright notice and include the [`NOTICE`](NOTICE) file with any redistribution or derivative work;
+- give credit: *"BharatLangTech AI by Aakash Bhat and contributors"*;
+- state any significant changes you made.
+
+The licence covers the source code only. Model weights and online services the software downloads or calls (IndicWhisper, multilingual-e5, Qwen, NLLB-200, Surya, Tesseract data, edge-tts) keep their own licences. NLLB-200 in particular is non-commercial (CC BY-NC 4.0). The government documents in `backend/data/documents/` are public documents and are not covered by this licence.
