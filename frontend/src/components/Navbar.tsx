@@ -1,4 +1,4 @@
-import { Bot, Mic, MessageSquare, BookOpen, FolderCog, ClipboardCheck, Sparkles, Globe } from 'lucide-react';
+import { Bot, Mic, MessageSquare, BookOpen, FolderCog, ClipboardCheck, Globe } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { getTranslation } from '../i18n/translations';
 import type { ScreenId, ServiceStatus } from '../types';
@@ -76,9 +76,13 @@ export function Navbar({
             className="flex items-center space-x-3 cursor-pointer select-none group text-left"
             onClick={() => setActiveScreen('home')}
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-orange-500/20 ring-2 ring-white/10 group-hover:scale-105 transition-transform shrink-0">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+            <img
+              src="/logo.png"
+              alt=""
+              width={40}
+              height={40}
+              className="w-10 h-10 rounded-xl shadow-lg shadow-orange-500/20 ring-2 ring-white/10 group-hover:scale-105 transition-transform shrink-0"
+            />
             <div className="flex flex-col justify-center">
               <div className="flex items-center space-x-2">
                 <span className="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
