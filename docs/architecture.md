@@ -110,7 +110,7 @@ The corpus is driven by `backend/data/documents/manifest.json`. Marathi GRs are 
 
 ## 5. Deployment notes
 
-- **Office GPU (RTX 3060 Ti, 8 GB).** VRAM is the binding constraint: qwen3.5:9b plus IndicWhisper-medium peak at ~7.9 of 8.2 GB. `scripts/start_services.ps1` starts Ollama, uvicorn and Vite.
+- **Desktop (RTX 3060 Ti, 8 GB).** VRAM is the binding constraint: qwen3.5:9b plus IndicWhisper-medium peak at ~7.9 of 8.2 GB. `scripts/start_services.ps1` starts Ollama, uvicorn and Vite.
 - **AWS (EC2, Sydney, CPU-only).**
   - systemd runs uvicorn on 127.0.0.1:8000.
   - Caddy terminates TLS (Let's Encrypt), serves the built frontend and proxies `/api` and `/static`.
