@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/bharatlang_logo.png" alt="BharatLangTech AI logo" width="160">
+</p>
+
 # BharatLangTech AI (भारतलँगटेक एआय)
 
 A voice question-answering assistant for Maharashtra farmers. A farmer asks about government agricultural schemes in Marathi or the Varhadi (Vidarbha) dialect, by voice or text, and gets a Marathi answer drawn only from official government documents (GRs), with page citations, read aloud.
@@ -15,7 +19,7 @@ text  ────────────────────────�
 
 | Step | What runs | Code |
 |---|---|---|
-| Speech-to-text | `indicwhisper-medium-mr` (faster-whisper / CTranslate2) on the office GPU; `assemblyai` (cloud) on the AWS deployment | `backend/app/services/asr/` |
+| Speech-to-text | `indicwhisper-medium-mr` (faster-whisper / CTranslate2) on the desktop GPU; `assemblyai` (cloud) on the AWS deployment | `backend/app/services/asr/` |
 | Dialect normalisation | Lexicon-based Varhadi → standard Marathi. The citizen's original words are kept and searched alongside the normalised query | `services/translation/normalization.py`, `dialect_lexicon.py` |
 | Retrieval | `intfloat/multilingual-e5-small` embeddings (CPU) + FAISS flat index, plus a district × crop lookup that pulls the exact rate-table row | `services/rag/retrieval.py`, `table_lookup.py` |
 | Evidence gate | If the question names a district or crop that no retrieved chunk covers, the system refuses without calling the LLM | `services/rag/evidence_gate.py` |
@@ -56,9 +60,9 @@ The AWS account has no GPU, so voice questions there use AssemblyAI.
 
 ### Local vs AWS, measured end to end (2026-11-14)
 
-The same code ran on both machines (357 tests pass on each). Each item was sent 10 times to each deployment through the public API, from one client on the office network. The set was 12 graded typed questions (8 with figures checked against the GR tables, 4 that must be refused) and 4 recorded voice questions. Runner: `scripts/bench_deployments.py`; scorer: `scripts/bench_score.py`.
+The same code ran on both machines (357 tests pass on each). Each item was sent 10 times to each deployment through the public API, from one client on the local network. The set was 12 graded typed questions (8 with figures checked against the GR tables, 4 that must be refused) and 4 recorded voice questions. Runner: `scripts/bench_deployments.py`; scorer: `scripts/bench_score.py`.
 
-| | Office (local) | AWS |
+| | Desktop (local) | AWS |
 |---|---|---|
 | Typed questions correct | **120/120 (100%)** | 87/120 (72.5%) |
 | Voice questions correct | **40/40 (100%)** | 0/40 (0%) |
@@ -70,7 +74,7 @@ The same code ran on both machines (357 tests pass on each). Each item was sent 
 | First request after a restart | 9.7 s | 6.2 s |
 | Network overhead (median) | 0.02 s (LAN) | 0.4 s typed, 1.4 s voice (India → Sydney) |
 | What leaves the machine | answer text (for text-to-speech) | question, retrieved excerpts and audio (Bedrock, AssemblyAI), plus the answer text |
-| Availability | only while the office PC is on | 24/7 |
+| Availability | only while the desktop PC is on | 24/7 |
 | Access | local network or SSH tunnel | public HTTPS with a login |
 | Cost per 1,000 questions | not measured | not measured |
 
@@ -124,7 +128,7 @@ pnpm install
 pnpm dev                                    # http://localhost:5173
 ```
 
-The scripts in `scripts/*.sh` are the original macOS/Homebrew setup and assume Apple hardware. On Windows, the office box uses `scripts/start_services.ps1`.
+The scripts in `scripts/*.sh` are the original macOS/Homebrew setup and assume Apple hardware. On Windows, the desktop uses `scripts/start_services.ps1`.
 
 ---
 

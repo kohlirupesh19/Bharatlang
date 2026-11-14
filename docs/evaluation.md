@@ -8,7 +8,7 @@ Every number here comes from a run that can be re-done, with the run file or scr
 
 **Data.** RESPIN Marathi test split (2,170 utterances, 160 speakers, 4 dialect groups D1–D4) and FLEURS Marathi test split (1,015 utterances), frozen at fixed dataset revisions under `eval_data/`.
 **Method.** `backend/app/evaluation/asr_bench/run.py bench`, the same normaliser for every engine, WER/CER via `jiwer`, 95% confidence intervals from a speaker-level paired bootstrap. Hardware: RTX 3060 Ti 8 GB, CUDA. RTF = decode time ÷ audio time.
-**Runs.** `eval_data/runs/20261112-*/summary.json` on the office machine.
+**Runs.** `eval_data/runs/20261112-*/summary.json` on the desktop machine.
 
 | Engine | RESPIN WER [95% CI] | RESPIN CER | FLEURS WER [95% CI] | FLEURS CER | RTF (RESPIN) |
 |---|---|---|---|---|---|
@@ -49,7 +49,7 @@ The old dedupe compared only the first 100 characters, and every PMFBY chunk sta
 
 ## 3. LLM answers
 
-**Bake-off** (12 hand-read questions, office GPU, 2026-11-12):
+**Bake-off** (12 hand-read questions, desktop GPU, 2026-11-12):
 
 | Model | s/answer | VRAM peak | Figures when evidence present | Traps refused (of 4) |
 |---|---|---|---|---|
@@ -78,13 +78,13 @@ Automatic scores ranked the worse models higher twice, so every answer is read b
 
 ## 5. Automated tests
 
-`pytest backend/tests`: 357 passed on the AWS server and 357 on the office PC on 2026-11-14 (real index; the end-to-end scenarios ran against live Bedrock on AWS and Ollama on office). The tests cover chunking, OCR corrections, table grids, retrieval dedupe, table lookup, the evidence gate, the numeric guard, answer language, dialect normalisation, ASR registry and long-audio splitting, the Bedrock client (with faked AWS), the public corpus-source list, the benchmark scorer and the API scenarios.
+`pytest backend/tests`: 357 passed on the AWS server and 357 on the desktop PC on 2026-11-14 (real index; the end-to-end scenarios ran against live Bedrock on AWS and Ollama on the desktop). The tests cover chunking, OCR corrections, table grids, retrieval dedupe, table lookup, the evidence gate, the numeric guard, answer language, dialect normalisation, ASR registry and long-audio splitting, the Bedrock client (with faked AWS), the public corpus-source list, the benchmark scorer and the API scenarios.
 
 ---
 
-## 6. Deployment comparison: office (local) vs AWS, 2026-11-14
+## 6. Deployment comparison: desktop (local) vs AWS, 2026-11-14
 
-Each item was sent end to end through `/api/chat` and `/api/chat/voice` on both deployments, 10 times, from one client on the office network: 320 requests and 0 errors. The two deployments run the same code and index; only `.env` differs. Office uses Ollama `qwen3.5:9b` and IndicWhisper on an RTX 3060 Ti. AWS uses Bedrock Qwen3-32B and AssemblyAI on a 2-vCPU EC2 instance in Sydney.
+Each item was sent end to end through `/api/chat` and `/api/chat/voice` on both deployments, 10 times, from one client on the local network: 320 requests and 0 errors. The two deployments run the same code and index; only `.env` differs. The desktop uses Ollama `qwen3.5:9b` and IndicWhisper on an RTX 3060 Ti. AWS uses Bedrock Qwen3-32B and AssemblyAI on a 2-vCPU EC2 instance in Sydney.
 
 Items:
 - the 12 graded questions from §3: 8 with figures checked against the GR tables, and 4 that must be refused;
@@ -92,7 +92,7 @@ Items:
 
 Each repeat used a seeded shuffled order, the same on both deployments. The scoring rules were fixed before the full run (`scripts/bench_score.py`, tested in `backend/tests/test_bench_score.py`). Raw data: `eval_data/runs/20261114_deploy_bench.jsonl`.
 
-| | Office | AWS |
+| | Desktop | AWS |
 |---|---|---|
 | Typed correct | 120/120 = 100% (95% CI 96.9–100) | 87/120 = 72.5% (63.9–79.7) |
 | … answerable with the right figure | 80/80 | 47/80 |
@@ -105,15 +105,15 @@ Each repeat used a seeded shuffled order, the same on both deployments. The scor
 | Median / p90 time, voice | 11.77 / 12.39 s | 12.54 / 14.18 s |
 
 Paired by item and repeat:
-- **Typed:** office alone was correct in 33 pairs and AWS alone in 0 (exact McNemar p ≈ 2e-10).
+- **Typed:** the desktop alone was correct in 33 pairs and AWS alone in 0 (exact McNemar p ≈ 2e-10).
 - **Voice:** 40 against 0 (p ≈ 2e-12).
 - **Latency:** AWS was 3.6 s faster per typed question (bootstrap 95% CI 3.5–4.7 s) and 0.8 s slower per voice question.
 
 Where AWS failed:
-- **Typed questions.** It answered 3 table lookups in all 10 repeats without the figure: Gadchiroli and Nashik cotton sum insured, and the Nashik soybean premium. It retrieved the same pages as office.
+- **Typed questions.** It answered 3 table lookups in all 10 repeats without the figure: Gadchiroli and Nashik cotton sum insured, and the Nashik soybean premium. It retrieved the same pages as the desktop.
 - **Voice questions.** AssemblyAI's transcripts never let an answer reach the asked figure.
 
-Office's one real error was a voice answer that treated "2 acres" as 2 ha and wrote ₹1,18,000 instead of about ₹47,800; the numeric guard flagged it. The guard raised 24 other flags across both deployments, and all of them were false alarms:
+The desktop's one real error was a voice answer that treated "2 acres" as 2 ha and wrote ₹1,18,000 instead of about ₹47,800; the numeric guard flagged it. The guard raised 24 other flags across both deployments, and all of them were false alarms:
 - figures the GR writes in words ("५० हजार");
 - the Namo total (3 × ₹2,000);
 - dates and page numbers.
