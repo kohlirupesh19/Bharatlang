@@ -70,7 +70,7 @@ Automatic scores ranked the worse models higher twice, so every answer is read b
 
 | Setup | Measured |
 |---|---|
-| Office: qwen3.5:9b + IndicWhisper loaded | VRAM peak 7,867–7,931 of 8,192 MiB; backend RSS ~2.1 GB |
+| Desktop: qwen3.5:9b + IndicWhisper loaded | VRAM peak 7,867–7,931 of 8,192 MiB; backend RSS ~2.1 GB |
 | AWS: typed question, Bedrock Qwen3-32B | 4.6 s server-side; 5.8 s round trip from India |
 | AWS: first request after install | +19 s once, to download `multilingual-e5-small` |
 
