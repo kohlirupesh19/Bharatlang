@@ -44,7 +44,7 @@ With `LLM_PROVIDER=ollama` and a local ASR engine, everything except text-to-spe
 
 ## Deployments
 
-| | Office GPU box (development) | AWS (online demo) |
+| | Desktop box (development) | AWS (online demo) |
 |---|---|---|
 | Machine | Windows, RTX 3060 Ti 8 GB, 32 GB RAM | EC2 m7i-flex.large (2 vCPU, 8 GB), Ubuntu 24.04, Sydney |
 | LLM | Ollama `qwen3.5:9b` on the GPU | Bedrock `qwen.qwen3-32b-v1:0` |
