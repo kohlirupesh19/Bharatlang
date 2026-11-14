@@ -1,0 +1,5 @@
+# Evaluation / experiment tooling (not needed to run the app)
+-r requirements.txt
+pyarrow>=17.0.0
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

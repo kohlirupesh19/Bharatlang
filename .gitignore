@@ -53,3 +53,20 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Frozen evaluation datasets and experiment outputs (large, re-downloadable)
+eval_data/
+logs/
+
+# Source PDFs are public and re-downloadable from documents/manifest.json URLs
+backend/data/documents/sources/**/*.pdf
+# OCR tool environment
+.venv-ocr/
+# Converted/downloaded model weights
+models/
+# Third-party binaries (llama.cpp CUDA build) and their downloads
+tools/
+
+# Local .env backups (contain secrets) and index snapshots made by reindex
+.env.bak*
+backend/data/indexes/*.backup-*

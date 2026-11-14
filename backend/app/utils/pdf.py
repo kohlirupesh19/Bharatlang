@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 import pymupdf
 import pytesseract
 from PIL import Image
+from backend.app.core.config import settings
 from backend.app.core.logging import logger
 
 # Configure local tesseract data prefix
@@ -13,7 +14,7 @@ TESSDATA_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "tessdat
 if TESSDATA_DIR.exists():
     os.environ["TESSDATA_PREFIX"] = str(TESSDATA_DIR)
 
-pytesseract.pytesseract.tesseract_cmd = "/opt/homebrew/bin/tesseract"
+pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_PATH
 
 def clean_extracted_text(text: str) -> str:
     """

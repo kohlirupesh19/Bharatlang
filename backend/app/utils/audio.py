@@ -28,7 +28,7 @@ def preprocess_audio_to_numpy(
 
     # Use ffmpeg to stream decoded raw float32 pcm mono audio at target_sample_rate
     cmd = [
-        "/opt/homebrew/bin/ffmpeg",
+        settings.FFMPEG_PATH,
         "-nostdin",
         "-threads", "1",
         "-i", str(input_audio_path),

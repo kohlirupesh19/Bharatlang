@@ -1,212 +1,197 @@
-# 🌾 BharatLangTech AI (भारतलँगटेक एआय)
-### Dialect-Aware Multilingual Voice Intelligence Platform for Rural Maharashtra
-**100% Open-Source | Offline-First | Apple Silicon M2 Optimized | Marathi & Varhadi Dialect Intelligence**
+# BharatLangTech AI (भारतलँगटेक एआय)
+
+A voice question-answering assistant for Maharashtra farmers. A farmer asks about government agricultural schemes in Marathi or the Varhadi (Vidarbha) dialect, by voice or text, and gets a Marathi answer drawn only from official government documents (GRs), with page citations, read aloud.
+
+It is a research prototype, not a production service. The knowledge base currently holds **7 documents (772 chunks)**: PM-KISAN (FAQ and guidelines), PMFBY crop insurance 2025-26, the comprehensive crop insurance top-up, the 2019 Karjmukti loan waiver and its 2022 incentive, and Namo Shetkari Mahasanman Nidhi.
 
 ---
 
-## 🌟 Executive Overview
-
-**BharatLangTech AI** is a complete, production-quality voice intelligence platform engineered specifically for Marathi and regional dialect (Varhadi / Vidarbha) speaking citizens. It allows rural farmers to ask complex questions about Maharashtra state and central agricultural schemes in their natural spoken dialect and receive verified, evidence-grounded answers with exact official document citations and Marathi voice synthesis.
-
-Built adhering to a **strict open-source policy**, BharatLangTech AI uses **zero paid proprietary APIs** (no OpenAI, Gemini, Claude, or paid cloud speech APIs). The entire intelligence stack runs locally on Apple Silicon (tested on a MacBook Air M2, 16 GB unified RAM) consuming only ~2.0 GB of memory.
-
----
-
-## 🚀 Key Features
-
-* 🎙️ **Dialect-Aware Voice Processing:**
-  - Robust audio pipeline converting any browser recording or uploaded audio (WAV, MP3, WebM, OGG) via FFmpeg raw PCM decoding.
-  - Calibrated confidence scoring, silence detection, and interactive transcript editor before question submission.
-* 🗣️ **Varhadi (Vidarbha) Dialect Intelligence:**
-  - Automatic detection of Vidarbha regional dialect markers (`व्हाया`, `व्हते`, `पायजे`, `कायले`, etc.).
-  - **Non-destructive normalization:** Citizen's spoken transcript is permanently retained for evaluation and audit, while a normalized Marathi query is generated for high-precision semantic retrieval.
-* 🏛️ **Evidence-Grounded Scheme RAG:**
-  - Ingests official Maharashtra Government Resolutions (GRs) and scheme circulars using PyMuPDF with transparent Tesseract Devanagari OCR fallback for scanned pages.
-  - High-density multilingual semantic search with `intfloat/multilingual-e5-small` embeddings and FAISS `IndexFlatIP`.
-* 🧠 **Hallucination-Free Local LLM Reasoning:**
-  - Offline local reasoning powered by **Qwen2.5 1.5B** running via Ollama with Metal GPU acceleration.
-  - Mandatory 7-element structured scheme breakdown: Scheme Name, Simple explanation, Eligibility, Required documents, Application procedure, Conditions/Deadlines, and Source document citations with page numbers.
-  - If a detail is missing from the government circular, the model explicitly declares *"माहिती उपलब्ध नाही"* instead of speculating.
-* 🔊 **Marathi Neural Speech Synthesis:**
-  - Generates clear Devanagari audio responses with native Marathi intonation.
-* 📊 **Empirical Benchmarks & Citizen Feedback:**
-  - Integrated ASR benchmark module (WER/CER via `jiwer`) and 30-question RAG retrieval benchmark (Recall@K, MRR).
-  - Active citizen feedback interface (1-5 star ratings and textual corrections) stored in SQLite for continuous improvement.
-
----
-
-## 🏗️ System Architecture
+## How a question is answered
 
 ```
-USER (Farmer in Vidarbha)
-  │
-  ├── Spoken Audio / Typed Query (Varhadi or Marathi)
-  │
-  ▼
-REACT FRONTEND (Vite + TypeScript + Tailwind CSS)
-  │
-  ├── Audio Recording & Preprocessing (FFmpeg 16kHz Mono)
-  ├── Speech Recognition (Faster-Whisper / IndicConformer Abstraction)
-  ├── Interactive Transcript Editor (Confirm / Correct ASR output)
-  │
-  ▼
-FASTAPI BACKEND
-  │
-  ├── Dialect Engine (Varhadi Marker Detection & Non-Destructive Normalization)
-  ├── Maharashtra Govt & Agri Terminology Glossary
-  ├── FAISS Vector Search (multilingual-e5-small embeddings)
-  ├── Local LLM Reasoning (Qwen2.5 1.5B via Ollama Metal GPU)
-  ├── Marathi Neural TTS Generation
-  │
-  ▼
-RESPONSE
-  ├── Structured Evidence-Grounded Marathi Text
-  ├── Verified Source Citations (GR Number & Exact Page Number)
-  ├── Native Marathi Audio Playback
-  └── English Translation Toggle
+voice ──► speech-to-text ──► dialect normalisation ──► retrieval ──► evidence gate ──► LLM ──► checks ──► answer + citations ──► text-to-speech
+text  ───────────────────────────┘
 ```
+
+| Step | What runs | Code |
+|---|---|---|
+| Speech-to-text | `indicwhisper-medium-mr` (faster-whisper / CTranslate2) on the office GPU; `assemblyai` (cloud) on the AWS deployment | `backend/app/services/asr/` |
+| Dialect normalisation | Lexicon-based Varhadi → standard Marathi. The citizen's original words are kept and searched alongside the normalised query | `services/translation/normalization.py`, `dialect_lexicon.py` |
+| Retrieval | `intfloat/multilingual-e5-small` embeddings (CPU) + FAISS flat index, plus a district × crop lookup that pulls the exact rate-table row | `services/rag/retrieval.py`, `table_lookup.py` |
+| Evidence gate | If the question names a district or crop that no retrieved chunk covers, the system refuses without calling the LLM | `services/rag/evidence_gate.py` |
+| LLM answer | `LLM_PROVIDER=ollama` (local `qwen3.5:9b`) or `LLM_PROVIDER=bedrock` (Amazon Bedrock, `qwen.qwen3-32b-v1:0` by default) | `services/llm/provider.py` |
+| Checks | Numbers not found in the evidence get a visible warning (`unverified_numbers`). An answer not in Marathi gets one retry, then a warning | `services/rag/numeric_guard.py`, `answer_language.py` |
+| Text-to-speech | `edge-tts` (Microsoft's online voices `mr-IN-AarohiNeural` / `mr-IN-ManoharNeural`) | `services/tts/indic_tts.py` |
+
+The corpus is built offline from the GR PDFs. Scanned pages are OCR'd with Surya; table cells are expanded into a grid so each chunk keeps its district, season and column headings (`backend/app/services/rag/corpus/`). PDFs uploaded through the UI are parsed with PyMuPDF and Tesseract.
 
 ---
 
-## ⚡ Quick Start Guide
+## What is local and what is a cloud service
 
-### 1. System Prerequisites
+Be aware of what leaves the machine:
 
-Ensure you have [Homebrew](https://brew.sh) installed on your Mac, then run:
+| Service | When it is used | What is sent |
+|---|---|---|
+| Microsoft edge-tts | Always, for spoken answers | The answer text |
+| Amazon Bedrock | Only with `LLM_PROVIDER=bedrock` | The question plus up to 4 retrieved excerpts (~2,400 characters) |
+| AssemblyAI | Only with `ASR_ACTIVE_MODEL=assemblyai` and a key set | The recorded audio (deleted after transcription by default) |
+| Hugging Face | First run only | Model downloads |
+
+With `LLM_PROVIDER=ollama` and a local ASR engine, everything except text-to-speech runs on your own machine.
+
+---
+
+## Deployments
+
+| | Office GPU box (development) | AWS (online demo) |
+|---|---|---|
+| Machine | Windows, RTX 3060 Ti 8 GB, 32 GB RAM | EC2 m7i-flex.large (2 vCPU, 8 GB), Ubuntu 24.04, Sydney |
+| LLM | Ollama `qwen3.5:9b` on the GPU | Bedrock `qwen.qwen3-32b-v1:0` |
+| Speech-to-text | `indicwhisper-medium-mr` on the GPU | AssemblyAI (much less accurate for Marathi, see below) |
+| Embeddings | CPU | CPU |
+| Access | Local network / SSH tunnel | HTTPS with a login (the app itself has no user accounts yet) |
+
+The AWS account has no GPU, so voice questions there use AssemblyAI.
+
+### Local vs AWS, measured end to end (2026-11-14)
+
+The same code ran on both machines (357 tests pass on each). Each item was sent 10 times to each deployment through the public API, from one client on the office network. The set was 12 graded typed questions (8 with figures checked against the GR tables, 4 that must be refused) and 4 recorded voice questions. Runner: `scripts/bench_deployments.py`; scorer: `scripts/bench_score.py`.
+
+| | Office (local) | AWS |
+|---|---|---|
+| Typed questions correct | **120/120 (100%)** | 87/120 (72.5%) |
+| Voice questions correct | **40/40 (100%)** | 0/40 (0%) |
+| Speech-to-text WER on the 4 clips | **10.6%** | 62.8% |
+| Wrong refusals of answerable questions | 0/120 | 12/120 |
+| Invented figures (hand-checked) | 1/160 | 0/160 |
+| Median time, typed question | 8.8 s | **5.2 s** |
+| Median time, voice question | **11.8 s** | 12.5 s |
+| First request after a restart | 9.7 s | 6.2 s |
+| Network overhead (median) | 0.02 s (LAN) | 0.4 s typed, 1.4 s voice (India → Sydney) |
+| What leaves the machine | answer text (for text-to-speech) | question, retrieved excerpts and audio (Bedrock, AssemblyAI), plus the answer text |
+| Availability | only while the office PC is on | 24/7 |
+| Access | local network or SSH tunnel | public HTTPS with a login |
+| Cost per 1,000 questions | not measured | not measured |
+
+Both paired differences in accuracy are far outside chance: exact McNemar p ≈ 2e-10 for typed questions and ≈ 2e-12 for voice. On AWS, Bedrock Qwen3-32B retrieved the same pages but left the figure out of 3 of the table lookups every time. AssemblyAI's Marathi transcripts were too poor for any voice answer to contain the asked figure. AWS is faster only for typed questions.
+
+The test set is small: 12 questions and 4 clips from a single speaker. The repeats show consistency, not coverage. Full results: `docs/evaluation.md`.
+
+---
+
+## Measured results
+
+These are real measurements; the details are in [`docs/evaluation.md`](docs/evaluation.md).
+
+**Speech-to-text, full Marathi test sets** (RESPIN mr: 2,170 clips, 160 speakers; FLEURS mr: 1,015 clips; 95% speaker-level bootstrap intervals; RTX 3060 Ti):
+
+| Engine | RESPIN WER | FLEURS WER |
+|---|---|---|
+| **indicwhisper-medium-mr** | **26.9%** [25.1–28.7] | **22.8%** [21.7–23.9] |
+| whisper-small-marathi (steja) | 57.7% | 52.0% |
+| whisper large-v3-turbo | 81.6% | 81.3% |
+| whisper medium | 90.6% | 89.3% |
+| whisper small | 101.6% | 106.3% |
+
+On a 14-clip side-by-side, AssemblyAI scored 86.5% WER against 26.9% for IndicWhisper.
+
+**Retrieval** (698 district × crop rate-table lookups): recall@1 0.971, recall@4 1.000.
+
+**Latency**: about 4.6 s per typed question on the AWS server (Bedrock Qwen3-32B), and 5.8 s round trip from India.
+
+---
+
+## Running it locally
+
+Requirements: Python 3.12, [uv](https://docs.astral.sh/uv/), Node 20+ with [pnpm](https://pnpm.io), ffmpeg, and Tesseract with Marathi (`mar`) data. An NVIDIA GPU is optional but needed for fast local speech-to-text. Full steps: [`docs/installation.md`](docs/installation.md).
 
 ```bash
-brew install ffmpeg tesseract ollama node
+# Backend
+uv venv --python 3.12 .venv
+uv pip install -r requirements.txt          # CPU-only torch: install torch from https://download.pytorch.org/whl/cpu first
+cp .env.example .env                        # then edit; see "Configuration" below
+
+# Local LLM (skip if you use Bedrock)
+ollama pull qwen3.5:9b
+
+# Start the API
+.venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+
+# Frontend (dev server proxies /api and /static to :8000)
+cd frontend
+pnpm install
+pnpm dev                                    # http://localhost:5173
 ```
 
-### 2. Automated Setup
+The scripts in `scripts/*.sh` are the original macOS/Homebrew setup and assume Apple hardware. On Windows, the office box uses `scripts/start_services.ps1`.
 
-Clone the repository and run the automated setup script:
+---
+
+## Configuration
+
+All settings live in `.env` (see `.env.example` and `backend/app/core/config.py`). The main ones:
+
+| Setting | Values |
+|---|---|
+| `LLM_PROVIDER` | `ollama` (default) or `bedrock` |
+| `OLLAMA_MODEL` | e.g. `qwen3.5:9b` |
+| `BEDROCK_MODEL_ID`, `BEDROCK_REGION` | e.g. `qwen.qwen3-32b-v1:0`, `ap-southeast-2`. Credentials come from the standard AWS chain (instance role, profile or env), never from `.env` |
+| `ASR_ACTIVE_MODEL` | `indicwhisper-medium-mr`, `whisper-small-marathi-steja`, `faster-whisper-small`, `assemblyai`, … |
+| `WHISPER_DEVICE`, `WHISPER_COMPUTE_TYPE` | `cuda` + `int8_float16` on an NVIDIA GPU, `cpu` + `int8` otherwise |
+| `EMBEDDING_DEVICE` | `cpu` recommended (keeps GPU memory for the LLM and ASR) |
+
+`GET /api/health` reports the active LLM provider and model, the ASR engines, the compute device and the index size, for operators. The web interface uses only `services.llm.is_running` from it, to show "service available" or "temporarily unavailable" in plain words.
+
+---
+
+## Web interface
+
+The website is a plain citizen interface in Marathi, Varhadi, Hindi and English, and it shows no technical details: no model, engine or library names, timings, confidence scores or chunk counts. It has four screens:
+
+- **Home:** what the assistant does, how to ask, and example questions.
+- **Voice:** record or choose an audio file, then check and correct the transcript before asking.
+- **Chat:** answers with the document name and page, and a reminder to check the original.
+- **Government documents:** the corpus documents from `manifest.json`, served by `GET /api/documents/sources` with links to the official copies.
+
+The operator screens (document upload, delete and reindex, plus the ASR and retrieval benchmarks) open only at `/#admin`. They are lazy-loaded, so their wording is not in the citizen bundle. Opening them at `/#admin` hides them from citizens but does not secure them: the API endpoints behind them need their own authentication before the site's login is removed.
+
+---
+
+## Tests
 
 ```bash
-cd Bharatlang
-
-# Step 1: Install Python virtualenv (.venv) and Node.js dependencies
-bash scripts/setup.sh
-
-# Step 2: Download and cache all local open-source AI models
-bash scripts/download_models.sh
+.venv/bin/python -m pytest backend/tests -q -p no:cacheprovider
 ```
 
-### 3. Launch the Platform
-
-Start both the FastAPI Backend and the React Frontend with a single command:
-
-```bash
-bash scripts/start.sh
-```
-
-Once started:
-* **Citizen Web UI:** [http://localhost:5173](http://localhost:5173)
-* **Backend API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-* **Health Probes:** [http://localhost:8000/api/health](http://localhost:8000/api/health)
+The full suite (357 tests, including the end-to-end API scenarios against live Bedrock) passed on the AWS server on 2026-11-14. The end-to-end tests need the real index in `backend/data/indexes/`.
 
 ---
 
-## 🌾 Demonstration Scenarios
-
-### Scenario 1: Vidarbha Farmer Inquires about Loan Waiver (Varhadi Dialect)
-* **Input Voice:** *"मला शेतकरी कर्जमाफीचा फायदा व्हाया पायजे, काय करा लागते?"*
-* **ASR Recognition:** Accurately captured with transcript editor preview.
-* **Dialect Detection:** Flagged as `वऱ्हाडी (Varhadi - Vidarbha)`.
-* **Normalized Marathi:** *"मला शेतकरी कर्जमाफीचा फायदा व्हायला पाहिजे, काय करावे लागते?"* (Spoken transcript preserved intact).
-* **Grounding Result:** Retrieves *Mahatma Jyotirao Phule Shetkari Karjmukti Yojana 2019* circular.
-* **Grounded Output:**
-  - **पात्रता:** थकीत पीक कर्ज २ लाख रुपयांपर्यंत असणारे शेतकरी पात्र.
-  - **कागदपत्रे:** आधार कार्ड, बँक पासबुक, कर्ज खाते तपशील, ७/१२ उतारा.
-  - **अर्ज प्रक्रिया:** बँक शाखा / सीएससी केंद्रावर जाऊन आधार प्रमाणीकरण करणे.
-  - **संदर्भ:** महात्मा ज्योतिराव फुले शेतकरी कर्जमुक्ती योजना, पान क्र. १.
-  - **ऑडिओ:** Clear Marathi voice reading the explanation.
-
-### Scenario 2: Pradhan Mantri 1-Rupee Crop Insurance
-* **Input Query:** *"१ रुपयात पीक विमा कसा मिळतो आणि तक्रार कुठे करायची?"*
-* **Grounding Result:** Retrieves *PM Fasal Bima Yojana Maharashtra* circular.
-* **Response:** Explains the ₹1 farmer contribution, 72-hour intimation deadline for natural calamity via Crop Insurance App, and Toll-Free 14447 helpline.
-
----
-
-## 📁 Repository Structure
+## Repository layout
 
 ```
-Bharatlang/
-├── backend/
-│   ├── app/
-│   │   ├── api/                 # FastAPI Endpoints (speech, chat, docs, feedback, evaluation)
-│   │   ├── core/                # Configuration, logging, security, hardware detection
-│   │   ├── database/            # SQLAlchemy models (SQLite) and session management
-│   │   ├── services/
-│   │   │   ├── asr/             # Faster-Whisper, IndicConformer, ASRManager
-│   │   │   ├── translation/     # Varhadi normalization, NLLB-200, scheme glossary
-│   │   │   ├── rag/             # Multilingual E5 embeddings, chunking, FAISS retriever
-│   │   │   ├── llm/             # Ollama Qwen2.5 client, anti-hallucination prompts
-│   │   │   └── tts/             # Marathi neural speech synthesis
-│   │   ├── utils/               # FFmpeg raw audio preprocessing, PyMuPDF + OCR parser
-│   │   └── main.py              # Application entrypoint & lifespan
-│   ├── data/
-│   │   ├── indexes/             # FAISS binary vector store & chunks metadata
-│   │   ├── seed_documents/      # Primed Maharashtra Government scheme circulars
-│   │   └── tessdata/            # Marathi (mar) & Hindi (hin) OCR models
-│   └── tests/                   # Automated pytest e2e test suite (16 tests)
-├── frontend/
-│   ├── src/
-│   │   ├── components/          # Navigation, Header, Audio Visualizer
-│   │   ├── pages/               # Voice Assistant, Chat, Knowledge Base, Evaluation
-│   │   ├── services/            # Axios API client
-│   │   └── App.tsx              # Main application shell
-├── docs/                        # Architecture, Installation, and Evaluation guides
-├── scripts/                     # setup.sh, download_models.sh, run_backend.sh, start.sh
-├── requirements.txt             # Python dependencies
-└── README.md                    # System documentation
+backend/app/
+  api/            FastAPI routes: chat, speech, documents, translation, feedback, evaluation, health
+  core/           settings (.env), logging
+  services/
+    asr/          engine registry, faster-whisper, AssemblyAI, long-audio splitting
+    translation/  Varhadi normalisation and lexicon, NLLB translation endpoint
+    rag/          retrieval, table lookup, evidence gate, numeric guard, answer language, corpus build
+    llm/          provider switch, Ollama and Bedrock clients, shared prompt + fallback
+    tts/          edge-tts
+  evaluation/     ASR benchmark (RESPIN / FLEURS) and retrieval metrics
+backend/data/     documents, OCR results, FAISS index, SQLite db
+backend/tests/    pytest suite
+frontend/src/     React 19 + Vite + TypeScript + Tailwind
+docs/             architecture, installation, evaluation
+scripts/          setup and service scripts, OCR and scoring tools
 ```
 
 ---
 
-## 🧪 Automated Testing & Verification
+## Credits
 
-Run the full automated test suite verifying all 10 acceptance scenarios:
+Built with [faster-whisper](https://github.com/SYSTRAN/faster-whisper), AI4Bharat's IndicWhisper (Vistaar) Marathi model, [Sentence-Transformers](https://sbert.net) (`intfloat/multilingual-e5-small`), [FAISS](https://github.com/facebookresearch/faiss), [Ollama](https://ollama.com) and [Qwen](https://huggingface.co/Qwen), Amazon Bedrock, [Surya OCR](https://github.com/datalab-to/surya), [Tesseract](https://github.com/tesseract-ocr/tesseract), [PyMuPDF](https://pymupdf.readthedocs.io/), [FastAPI](https://fastapi.tiangolo.com/) and [React](https://react.dev/).
 
-```bash
-source .venv/bin/activate
-pytest backend/tests/ -v
-```
-
-**Test Results:**
-```
-============================== 16 passed in 137s ===============================
-✅ test_health_check_scenario_6 PASSED
-✅ test_marathi_chat_grounded_scenario_1 PASSED
-✅ test_varhadi_dialect_query_scenario_2 PASSED
-✅ test_unsupported_question_scenario_4 PASSED
-✅ test_invalid_document_upload_scenario_8 PASSED
-✅ test_asr_model_switching_scenario_7 PASSED
-✅ test_feedback_submission_scenario_9 PASSED
-✅ test_audio_preprocessing_on_silence PASSED
-✅ test_audio_preprocessing_on_signal PASSED
-✅ test_varhadi_dialect_detection PASSED
-✅ test_standard_marathi_detection PASSED
-✅ test_non_destructive_varhadi_normalization PASSED
-✅ test_glossary_presence PASSED
-✅ test_document_chunking PASSED
-✅ test_faiss_retrieval_seeded_query PASSED
-✅ test_faiss_unsupported_query_filtering PASSED
-```
-
----
-
-## 📄 License & Attribution
-
-This project is licensed under the Apache 2.0 License.
-
-**Open-Source Technologies Used:**
-* [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2)
-* [Ollama](https://ollama.com) & [Qwen2.5](https://huggingface.co/Qwen)
-* [Sentence-Transformers](https://sbert.net) (`intfloat/multilingual-e5-small`)
-* [FAISS](https://github.com/facebookresearch/faiss) (Facebook AI Research)
-* [Tesseract OCR](https://github.com/tesseract-ocr/tesseract)
-* [PyMuPDF](https://pymupdf.readthedocs.io/)
-* [FastAPI](https://fastapi.tiangolo.com/) & [React 19](https://react.dev/)
-
+The original README stated an Apache 2.0 licence, but no LICENSE file is committed yet.

@@ -1,0 +1,261 @@
+<title>शेतकरी आवाज वाचन संच</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Marathi&family=Mukta:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, a recorder panel on top, numbered paragraph cards below.
+   The text in the chosen reading language is large; the other language sits under it as a smaller translation. */
+:root {
+  --bg: #f4f5ef;          /* field-paper, faintly green */
+  --surface: #ffffff;
+  --ink: #1c211c;
+  --muted: #5c6459;
+  --line: #d9ddd1;
+  --haldi: #b97d06;       /* turmeric: item IDs and focus */
+  --haldi-soft: #f6ead0;
+  --neel: #2c4f86;        /* indigo: file names and links */
+  --warn-bg: #fbf1dc;
+  --warn-ink: #7a4a00;
+  --font-read: "Tiro Devanagari Marathi", "Noto Serif Devanagari", "Nirmala UI", serif;
+  --font-ui: "Mukta", "Noto Sans Devanagari", "Nirmala UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131612; --surface: #1b1f1a; --ink: #e8ebe3; --muted: #a3ab9f; --line: #2e342c;
+    --haldi: #e3a83a; --haldi-soft: #3a2f17; --neel: #9db8e8; --warn-bg: #33290f; --warn-ink: #f0cf8a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131612; --surface: #1b1f1a; --ink: #e8ebe3; --muted: #a3ab9f; --line: #2e342c;
+  --haldi: #e3a83a; --haldi-soft: #3a2f17; --neel: #9db8e8; --warn-bg: #33290f; --warn-ink: #f0cf8a;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 1.0625rem; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.page { max-width: 46rem; margin: 0 auto; padding-block: 2rem 4rem; display: grid; gap: 2.5rem; }
+h1, h2 { font-family: var(--font-ui); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.7rem, 5vw, 2.3rem); font-weight: 700; line-height: 1.25; }
+h1 .h-en { display: block; font-size: .55em; font-weight: 600; color: var(--muted); margin-top: .2rem; }
+h2 { font-size: 1.4rem; font-weight: 700; display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; }
+h2 .h-en { font-size: .8em; font-weight: 600; color: var(--muted); }
+.lede { color: var(--muted); margin: .5rem 0 0; max-width: 38rem; display: grid; gap: .3rem; }
+.lede p { margin: 0; }
+.count { font-size: .9rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.en-line { display: block; color: var(--muted); font-size: .92em; }
+
+.howto { display: grid; gap: .75rem; }
+.howto ol { margin: 0; padding-left: 1.4rem; display: grid; gap: .55rem; }
+
+.recorder { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.2rem; display: grid; gap: .9rem; }
+.recorder h2 { font-size: 1.1rem; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: .8rem; }
+.field { display: grid; gap: .25rem; min-width: 0; align-content: start; }
+.field label { font-size: .85rem; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.field input, .field select {
+  font: inherit; font-size: 1rem; padding: .45rem .6rem; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+}
+.check { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+.check input { width: 1.1rem; height: 1.1rem; accent-color: var(--haldi); }
+.field input:focus-visible, .field select:focus-visible, .check input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--haldi); outline-offset: 2px; }
+.hint { font-size: .85rem; color: var(--muted); margin: 0; }
+.hint.bad { color: var(--warn-ink); }
+.pattern { font-family: var(--font-mono); font-size: .85rem; color: var(--neel); overflow-wrap: anywhere; }
+
+nav.jump { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
+nav.jump a { color: var(--neel); text-decoration: none; border-bottom: 1px solid currentColor; font-weight: 600; }
+
+.group { display: grid; gap: .9rem; }
+.group-note { margin: 0; color: var(--muted); }
+.draft { margin: 0; background: var(--warn-bg); color: var(--warn-ink); padding: .6rem .8rem; border-radius: 6px; font-size: .95rem; }
+.draft .en-line { color: inherit; opacity: .85; }
+.cards { display: grid; gap: 1.1rem; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.2rem 1rem; display: grid; gap: .75rem; scroll-margin-top: 1rem; min-width: 0; }
+.card-free { border-style: dashed; }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.pid {
+  font-family: var(--font-mono); font-weight: 500; font-size: 1.05rem; letter-spacing: .04em;
+  background: var(--haldi-soft); color: var(--haldi); padding: .1rem .55rem; border-radius: 5px;
+}
+.tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+.tag { font-size: .85rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 .6rem; }
+.tag-noisy { color: var(--warn-ink); border-color: currentColor; }
+
+/* The reading language is large; the other is a smaller translation with a label. */
+.texts { display: flex; flex-direction: column; gap: .7rem; }
+.reading { margin: 0; }
+.text-mr { font-family: var(--font-read); }
+.text-en { font-family: var(--font-ui); }
+.read-big { font-size: clamp(1.3rem, 4.2vw, 1.5rem); line-height: 1.95; order: 1; }
+.text-en.read-big { line-height: 1.7; }
+.read-small { order: 2; font-size: 1rem; line-height: 1.7; color: var(--muted); border-left: 3px solid var(--line); padding-left: .75rem; }
+.read-small::before { content: attr(data-gloss); display: block; font-family: var(--font-ui); font-size: .78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+body.hide-gloss .read-small { display: none; }
+
+.fname-row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: .65rem; }
+.fname { font-family: var(--font-mono); font-size: .85rem; color: var(--neel); overflow-wrap: anywhere; min-width: 0; flex: 1 1 14rem; }
+button.copy {
+  font: inherit; font-size: .85rem; font-weight: 600; color: var(--ink); background: transparent;
+  border: 1px solid var(--line); border-radius: 6px; padding: .2rem .7rem; cursor: pointer;
+}
+button.copy:hover { border-color: var(--haldi); }
+footer { color: var(--muted); font-size: .9rem; display: grid; gap: .3rem; }
+footer p { margin: 0; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<main class="page">
+  <header>
+    <h1>शेतकरी आवाज वाचन संच <span class="h-en">Farmer voice reading set</span></h1>
+    <div class="lede">
+      <p>शेतकऱ्यांसाठीच्या आवाज-सहायक ॲपची चाचणी करण्यासाठी हे परिच्छेद आहेत. सगळे जण तेच परिच्छेद वाचतात, म्हणून वेगवेगळ्या भागांच्या उच्चारांवर ॲप कसे चालते ते तपासता येते.</p>
+      <p>These paragraphs test a voice assistant for farmers. Everyone reads the same text, so we can compare how well the app understands each region's accent.</p>
+    </div>
+  </header>
+
+  <section class="howto" aria-labelledby="howto-h">
+    <h2 id="howto-h">वाचताना <span class="h-en">While reading</span></h2>
+    <ol>
+      <li>आधी परिच्छेद मनात एकदा वाचा.<span class="en-line">First read the paragraph once silently.</span></li>
+      <li>मग नेहमीच्या वेगाने, आपल्या नेहमीच्या उच्चारात मोठ्याने वाचा. पुस्तकी उच्चार करायचा प्रयत्न करू नका.<span class="en-line">Then read it aloud at your normal speed, in your normal accent. Don't try to sound bookish.</span></li>
+      <li>अडखळलात तर थांबा आणि तोच परिच्छेद पुन्हा सुरुवातीपासून वाचा.<span class="en-line">If you stumble, stop and read the same paragraph again from the start.</span></li>
+      <li>फोन तोंडापासून एक वीत (२०–३० सेंमी) दूर धरा.<span class="en-line">Hold the phone about a hand-span (20–30 cm) from your mouth.</span></li>
+      <li>स्वतःचे नाव, फोन, आधार किंवा बँक नंबर सांगू नका. परिच्छेदातले शेतकरी काल्पनिक आहेत.<span class="en-line">Don't say your name, phone, Aadhaar or bank number. The farmers in the paragraphs are fictional.</span></li>
+    </ol>
+  </section>
+
+  <section class="recorder" aria-labelledby="rec-h">
+    <h2 id="rec-h">रेकॉर्ड करणाऱ्यासाठी <span class="h-en">For the recorder</span></h2>
+    <div class="fields">
+      <div class="field">
+        <label for="spk">वाचक क्रमांक · Speaker ID</label>
+        <input id="spk" autocomplete="off" placeholder="spk02" value="spk02">
+      </div>
+      <div class="field">
+        <label for="lang">वाचनाची भाषा · Reading language</label>
+        <select id="lang">
+          <option value="mr">मराठी (mr)</option>
+          <option value="en">English (en)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="accent">बोली / उच्चार · Accent</label>
+        <select id="accent">{{ACCENT_OPTIONS}}</select>
+      </div>
+      <div class="field">
+        <label for="cond">ठिकाण · Condition</label>
+        <select id="cond">
+          <option value="quiet">शांत खोली · quiet</option>
+          <option value="noisy">टीव्ही / स्वयंपाकघर · noisy</option>
+          <option value="outdoor">बाहेर · outdoor</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="take">प्रयत्न · Take</label>
+        <input id="take" type="number" min="1" max="9" value="1">
+      </div>
+      <div class="field">
+        <span class="field-spacer" aria-hidden="true">&nbsp;</span>
+        <label class="check" for="gloss"><input id="gloss" type="checkbox" checked> भाषांतर दाखवा · Show translation</label>
+      </div>
+    </div>
+    <p class="hint" id="spk-hint">प्रत्येक कार्डखाली त्या रेकॉर्डिंगच्या फाईलचे नाव दिसते. Each card shows the file name for that recording, e.g. <span class="pattern">spk04_mr-varhadi_C03_quiet_t1.m4a</span></p>
+    <p class="hint">पहिली फाईल परवानगीची: वाचकाने “मी या रेकॉर्डिंगसाठी परवानगी देतो/देते” असे म्हणावे. First file is consent: the reader says that sentence (<span class="pattern" id="consent-name">spk02_consent.m4a</span>).</p>
+    <p class="hint">मराठी वाचक फक्त मराठी मजकूर वाचतात; इंग्रजी ओळ अर्थ समजण्यासाठी आहे. Marathi readers read only the Marathi text; choose English above only for an English reading session.</p>
+  </section>
+
+  <nav class="jump" aria-label="Sections">
+    <a href="#set-C">सर्वांसाठी · For everyone (C)</a>
+    <a href="#set-V">वऱ्हाडी · Varhadi (V)</a>
+    <a href="#set-F">आपल्या शब्दांत · Own words (F)</a>
+  </nav>
+
+  {{SECTIONS}}
+
+  <footer>
+    <p>C02, C03 आणि C10 हे तीन परिच्छेद शांत खोलीत वाचल्यानंतर टीव्ही चालू ठेवून किंवा स्वयंपाकघरात पुन्हा एकदा वाचायचे आहेत.</p>
+    <p>After the quiet recording, read C02, C03 and C10 once more with the TV on or in the kitchen.</p>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const ids = {{ITEM_IDS}};
+  const $ = (id) => document.getElementById(id);
+  const fields = ["spk", "lang", "accent", "cond", "take", "gloss"];
+  const KEY = "reading-set-recorder";
+
+  const load = () => {
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; }
+  };
+  const save = (state) => {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage blocked: settings are just not remembered */ }
+  };
+  const value = (f) => ($(f).type === "checkbox" ? $(f).checked : $(f).value);
+
+  const saved = load();
+  fields.forEach((f) => {
+    if (!(f in saved)) return;
+    if ($(f).type === "checkbox") $(f).checked = Boolean(saved[f]); else $(f).value = saved[f];
+  });
+
+  const speaker = () => $("spk").value.trim().toLowerCase();
+  const valid = () => /^spk\d{2,3}$/.test(speaker());
+  const take = () => Math.min(9, Math.max(1, parseInt($("take").value, 10) || 1));
+  const name = (item) => `${speaker()}_${$("lang").value}-${$("accent").value}_${item}_${$("cond").value}_t${take()}.m4a`;
+
+  const applyLanguage = () => {
+    const readEnglish = $("lang").value === "en";
+    document.querySelectorAll(".text-mr").forEach((el) => {
+      el.classList.toggle("read-big", !readEnglish);
+      el.classList.toggle("read-small", readEnglish);
+      el.dataset.gloss = "मराठी";
+    });
+    document.querySelectorAll(".text-en").forEach((el) => {
+      el.classList.toggle("read-big", readEnglish);
+      el.classList.toggle("read-small", !readEnglish);
+      el.dataset.gloss = "English meaning";
+    });
+    document.body.classList.toggle("hide-gloss", !$("gloss").checked);
+  };
+
+  const render = () => {
+    const ok = valid();
+    $("spk-hint").classList.toggle("bad", !ok);
+    $("consent-name").textContent = ok ? `${speaker()}_consent.m4a` : "spk02_consent.m4a";
+    document.querySelectorAll(".fname").forEach((el) => {
+      el.textContent = ok ? name(el.dataset.item) : "Speaker ID: spk + two digits (e.g. spk02)";
+    });
+    applyLanguage();
+    save(Object.fromEntries(fields.map((f) => [f, value(f)])));
+  };
+  fields.forEach((f) => $(f).addEventListener("input", render));
+  $("gloss").addEventListener("change", render);
+
+  document.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("button.copy");
+    if (!btn || !valid()) return;
+    const text = name(btn.dataset.item);
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "कॉपी झाले · Copied";
+    } catch (e) {
+      const code = btn.parentElement.querySelector(".fname");
+      const range = document.createRange();
+      range.selectNodeContents(code);
+      const sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
+      btn.textContent = "निवडले · Selected";
+    }
+    setTimeout(() => { btn.textContent = "कॉपी · Copy"; }, 1500);
+  });
+
+  console.assert(ids.length === 21, "expected 21 items");
+  render();
+})();
+</script>

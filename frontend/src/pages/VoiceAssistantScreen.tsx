@@ -3,6 +3,7 @@ import { Mic, Square, Play, Pause, Edit3, Send, AlertTriangle, RefreshCw, Volume
 import { apiClient } from '../services/api';
 import { TranscriptionResponse } from '../types';
 import { getTranslation } from '../i18n/translations';
+import { dialectLabel } from '../utils/dialectLabel';
 
 interface VoiceAssistantScreenProps {
   onSubmitQueryToChat: (query: string, language: string) => void;
@@ -45,6 +46,25 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isRecording]);
+
+  // Stop the microphone if the user leaves this screen mid-recording.
+  useEffect(() => {
+    return () => {
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== 'inactive') {
+        recorder.onstop = null;
+        recorder.stop();
+      }
+      recorder?.stream.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  // Release the previous recording's object URL when it is replaced or the screen closes.
+  useEffect(() => {
+    return () => {
+      if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
+    };
+  }, [recordedAudioUrl]);
 
   const startRecording = async () => {
     setErrorMsg(null);
@@ -95,8 +115,9 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
       const result = await apiClient.transcribeAudio(blob, selectedLanguage);
       setTranscription(result);
       setEditableTranscript(result.recognized_text);
-    } catch (err: any) {
-      setErrorMsg(err.response?.data?.detail || t.voice.noAudioRecorded);
+    } catch (err: unknown) {
+      console.warn('Transcription failed:', err);
+      setErrorMsg(t.voice.requestFailed);
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +131,7 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
       setAudioBlob(file);
       handleTranscribe(file);
     }
+    e.target.value = ''; // allow choosing the same file again
   };
 
   const handleSubmit = () => {
@@ -122,6 +144,7 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
   const handleReprocess = async () => {
     if (!editableTranscript.trim()) return;
     setIsLoading(true);
+    setErrorMsg(null);
     try {
       const normalized = await apiClient.normalizeDialect(editableTranscript);
       if (transcription) {
@@ -132,8 +155,9 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
           dialect_replacements: normalized.replacements
         });
       }
-    } catch (e) {
-      console.error(e);
+    } catch (err: unknown) {
+      console.warn('Re-checking the transcript failed:', err);
+      setErrorMsg(t.voice.requestFailed);
     } finally {
       setIsLoading(false);
     }
@@ -217,7 +241,7 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
           ) : (
             recordedAudioUrl && (
               <span className="font-mono text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
-                {t.voice.duration}: {formatDuration(transcription?.duration_sec ? Math.round(transcription.duration_sec) : recordingDuration)}
+                {t.voice.recordingLength}: {formatDuration(transcription?.duration_sec ? Math.round(transcription.duration_sec) : recordingDuration)}
               </span>
             )
           )}
@@ -246,7 +270,7 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
           <div className="w-full max-w-md bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FileAudio className="w-4 h-4 text-indigo-600" />
-              <span className="text-xs font-medium text-slate-700">{t.voice.originalTranscript}</span>
+              <span className="text-xs font-medium text-slate-700">{t.voice.yourRecording}</span>
             </div>
             <audio ref={audioPlayerRef} src={recordedAudioUrl} controls className="h-8 max-w-[200px]" />
           </div>
@@ -282,19 +306,18 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
               </h2>
             </div>
             {/* Dialect Badge */}
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-              {transcription.detected_dialect}
-            </span>
+            {dialectLabel(transcription.detected_dialect, t) && (
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                {dialectLabel(transcription.detected_dialect, t)}
+              </span>
+            )}
           </div>
 
-          {/* Uncertainty Warning if low confidence */}
-          {transcription.is_uncertain && transcription.warning_message && (
+          {/* Plain notice when recognition is uncertain (the backend's own wording stays in the API) */}
+          {transcription.is_uncertain && (
             <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-800 flex items-start space-x-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">{t.voice.confidence}</p>
-                <p>{transcription.warning_message}</p>
-              </div>
+              <p>{t.voice.uncertainNotice}</p>
             </div>
           )}
 
@@ -308,14 +331,14 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
               onChange={(e) => setEditableTranscript(e.target.value)}
               rows={3}
               className="w-full text-base p-3.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-sans shadow-inner"
-              placeholder={t.voice.originalTranscript}
+              placeholder={t.voice.editTranscript}
             />
           </div>
 
           {/* Non-destructive Normalization Info */}
           {transcription.dialect_replacements && transcription.dialect_replacements.length > 0 && (
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-2">
-              <span className="font-bold text-slate-700 block">{t.voice.normalizedQuery}:</span>
+              <span className="font-bold text-slate-700 block">{t.voice.understoodAs}:</span>
               <p className="text-slate-800 font-medium bg-white p-2.5 rounded-xl border border-slate-200">
                 {transcription.normalized_text}
               </p>
@@ -330,17 +353,9 @@ export const VoiceAssistantScreen: React.FC<VoiceAssistantScreenProps> = ({
           )}
 
           {/* Metadata Bar & Actions */}
-          <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
-            <div className="flex items-center space-x-3">
-              <span>{t.eval.modelSelectLabel} <strong className="text-slate-700">{transcription.model_name}</strong></span>
-              <span>{t.voice.duration}: <strong className="text-slate-700">{transcription.processing_latency_sec}s</strong></span>
-              {transcription.overall_confidence !== null && (
-                <span>{t.voice.confidence}: <strong className="text-slate-700">{Math.round(transcription.overall_confidence * 100)}%</strong></span>
-              )}
-            </div>
-
+          <div className="flex flex-wrap items-center justify-end text-xs text-slate-500 pt-3 border-t border-slate-100">
             {/* Action Buttons */}
-            <div className="flex items-center space-x-2 mt-3 sm:mt-0">
+            <div className="flex items-center space-x-2">
               <button
                 onClick={handleReprocess}
                 className="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold text-xs flex items-center space-x-1.5 transition-all"

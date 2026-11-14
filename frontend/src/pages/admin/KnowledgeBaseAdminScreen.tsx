@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Trash2, RefreshCw, CheckCircle, AlertTriangle, Layers, BookOpen } from 'lucide-react';
-import { apiClient } from '../services/api';
-import { KnowledgeBaseStats, DocumentItem } from '../types';
-import { getTranslation } from '../i18n/translations';
+import { apiClient } from '../../services/api';
+import { KnowledgeBaseStats, DocumentItem } from '../../types';
+import { getAdminTranslation } from '../../i18n/adminTranslations';
 
-interface KnowledgeBaseScreenProps {
+interface KnowledgeBaseAdminScreenProps {
   selectedLanguage: string;
 }
 
-export const KnowledgeBaseScreen: React.FC<KnowledgeBaseScreenProps> = ({ selectedLanguage }) => {
-  const t = getTranslation(selectedLanguage);
+export const KnowledgeBaseAdminScreen: React.FC<KnowledgeBaseAdminScreenProps> = ({ selectedLanguage }) => {
+  const t = getAdminTranslation(selectedLanguage);
 
   const [kbData, setKbData] = useState<KnowledgeBaseStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);

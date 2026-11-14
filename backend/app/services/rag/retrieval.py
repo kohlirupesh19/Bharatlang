@@ -1,7 +1,7 @@
 import os
 import json
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Sequence
 import faiss
 import numpy as np
 from backend.app.core.config import settings
@@ -21,6 +21,9 @@ class FAISSRetriever:
         self.dimension = dimension
         self.index: Optional[faiss.Index] = None
         self.metadata_store: List[Dict[str, Any]] = []
+        # Bumped whenever the indexed chunks change, so derived caches (the evidence-gate
+        # lexicon) can be keyed on it.
+        self.generation = 0
         self._load_index_from_disk()
 
     def _init_new_index(self):
@@ -41,9 +44,11 @@ class FAISSRetriever:
                 self._init_new_index()
         else:
             self._init_new_index()
+        self.generation += 1
 
     def save_to_disk(self) -> None:
         """Persists FAISS index binary and metadata JSON to disk."""
+        self.generation += 1
         if self.index is not None:
             settings.INDEXES_DIR.mkdir(parents=True, exist_ok=True)
             faiss.write_index(self.index, str(INDEX_FILE))
@@ -81,16 +86,18 @@ class FAISSRetriever:
             return 0
 
         logger.info(f"Deleting document {doc_id} ({removed_count} chunks)...")
-        # Rebuild index
-        self._init_new_index()
-        if remaining_chunks:
-            texts = [c["text"] for c in remaining_chunks]
-            embeddings = embedding_engine.encode_passages(texts)
-            self.index.add(embeddings)
-            self.metadata_store = remaining_chunks
-
-        self.save_to_disk()
+        self.replace_all_chunks(remaining_chunks)
         return removed_count
+
+    def replace_all_chunks(self, chunks: List[Dict[str, Any]]) -> int:
+        """Rebuilds the whole index from the given chunks and persists it."""
+        self._init_new_index()
+        if chunks:
+            embeddings = embedding_engine.encode_passages([c["text"] for c in chunks])
+            self.index.add(embeddings)
+            self.metadata_store = [dict(c) for c in chunks]
+        self.save_to_disk()
+        return len(chunks)
 
     def search(
         self,
@@ -121,17 +128,55 @@ class FAISSRetriever:
             chunk = dict(self.metadata_store[idx])
             chunk["similarity_score"] = round(float(score), 4)
 
-            # Deduplication
-            text_prefix = chunk["text"][:100]
-            if text_prefix in seen_texts:
+            # Drop exact duplicates only. A prefix key would collapse every chunk of a GR,
+            # since they all start with the same (often >100-char) title.
+            if chunk["text"] in seen_texts:
                 continue
-            seen_texts.add(text_prefix)
+            seen_texts.add(chunk["text"])
 
             results.append(chunk)
             if len(results) >= top_k:
                 break
 
         return results
+
+    def search_multi(
+        self,
+        queries: List[str],
+        top_k: int = settings.RETRIEVAL_TOP_K,
+        similarity_threshold: float = settings.RETRIEVAL_SIMILARITY_THRESHOLD
+    ) -> List[Dict[str, Any]]:
+        """
+        Searches with several phrasings of the same question (e.g. the citizen's
+        original dialect wording and its standard-Marathi normalization) and merges
+        the results, keeping each chunk once with its best score.
+        """
+        distinct_queries = list(dict.fromkeys(q.strip() for q in queries if q and q.strip()))
+        best_by_chunk: Dict[str, Dict[str, Any]] = {}
+        for query in distinct_queries:
+            for chunk in self.search(query, top_k=top_k, similarity_threshold=similarity_threshold):
+                key = chunk.get("chunk_id") or chunk["text"]
+                current = best_by_chunk.get(key)
+                if current is None or chunk["similarity_score"] > current["similarity_score"]:
+                    best_by_chunk[key] = chunk
+        ranked = sorted(best_by_chunk.values(), key=lambda c: c["similarity_score"], reverse=True)
+        return ranked[:top_k]
+
+    def score_positions(self, queries: List[str], positions: Sequence[int]) -> List[Dict[str, Any]]:
+        """
+        Scores specific indexed chunks (e.g. lexically matched tables) against the queries,
+        best score per chunk across the queries, highest first. No similarity threshold:
+        the caller already established that these chunks match.
+        """
+        valid = [int(p) for p in positions if 0 <= int(p) < len(self.metadata_store)]
+        distinct_queries = list(dict.fromkeys(q.strip() for q in queries if q and q.strip()))
+        if self.index is None or not valid or not distinct_queries:
+            return []
+        query_vecs = np.vstack([embedding_engine.encode_query(q) for q in distinct_queries])
+        chunk_vecs = np.vstack([self.index.reconstruct(p) for p in valid])
+        best = (chunk_vecs @ query_vecs.T).max(axis=1)
+        ranked = sorted(zip(valid, best), key=lambda pair: pair[1], reverse=True)
+        return [{**self.metadata_store[p], "similarity_score": round(float(score), 4)} for p, score in ranked]
 
     def get_stats(self) -> Dict[str, Any]:
         doc_ids = set(c.get("doc_id") for c in self.metadata_store)

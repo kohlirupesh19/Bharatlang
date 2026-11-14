@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, Play, Activity, Award } from 'lucide-react';
-import { apiClient } from '../services/api';
-import { getTranslation } from '../i18n/translations';
+import { apiClient } from '../../services/api';
+import { getAdminTranslation } from '../../i18n/adminTranslations';
 
 interface EvaluationScreenProps {
   selectedLanguage: string;
 }
 
 export const EvaluationScreen: React.FC<EvaluationScreenProps> = ({ selectedLanguage }) => {
-  const t = getTranslation(selectedLanguage);
+  const t = getAdminTranslation(selectedLanguage);
 
   const [evalData, setEvalData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRunningAsr, setIsRunningAsr] = useState(false);
   const [isRunningRag, setIsRunningRag] = useState(false);
-  const [activeModel, setActiveModel] = useState('faster-whisper-small');
+  const [activeModel, setActiveModel] = useState('');
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [asrResult, setAsrResult] = useState<any>(null);
   const [ragResult, setRagResult] = useState<any>(null);
 
@@ -36,8 +37,19 @@ export const EvaluationScreen: React.FC<EvaluationScreenProps> = ({ selectedLang
     }
   };
 
+  const fetchModels = async () => {
+    try {
+      const data = await apiClient.getAsrModels();
+      setAvailableModels(data.available_engines ?? []);
+      setActiveModel(data.active_engine ?? '');
+    } catch (e) {
+      console.error('Failed to load ASR models', e);
+    }
+  };
+
   useEffect(() => {
     fetchSummary();
+    fetchModels();
   }, []);
 
   const handleRunAsr = async () => {
@@ -112,9 +124,9 @@ export const EvaluationScreen: React.FC<EvaluationScreenProps> = ({ selectedLang
               onChange={(e) => setActiveModel(e.target.value)}
               className="text-xs p-2 rounded-xl border border-slate-300 bg-white font-semibold cursor-pointer"
             >
-              <option value="faster-whisper-small">faster-whisper-small</option>
-              <option value="faster-whisper-base">faster-whisper-base</option>
-              <option value="indicconformer-mr">indicconformer-mr</option>
+              {availableModels.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
             </select>
           </div>
         </div>
