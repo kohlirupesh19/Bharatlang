@@ -151,7 +151,7 @@ def _run_generate(monkeypatch, answers):
         calls.append(kwargs)
         return {"answer": answers[len(calls) - 1], "model": "fake", "is_fallback": False}
 
-    monkeypatch.setattr(pipeline.ollama_client, "generate_rag_answer", fake_llm)
+    monkeypatch.setattr(pipeline.llm_client, "generate_rag_answer", fake_llm)
     outcome = asyncio.run(pipeline._generate("प्रश्न", "प्रश्न", [CHUNK], "mr"))
     return outcome, calls
 
@@ -191,7 +191,7 @@ def test_retry_that_falls_back_keeps_the_first_answer_with_a_warning(monkeypatch
     async def fake_llm(**kwargs):
         return replies.pop(0)
 
-    monkeypatch.setattr(pipeline.ollama_client, "generate_rag_answer", fake_llm)
+    monkeypatch.setattr(pipeline.llm_client, "generate_rag_answer", fake_llm)
     outcome = asyncio.run(pipeline._generate("प्रश्न", "प्रश्न", [CHUNK], "mr"))
     assert outcome["answer"].startswith(AYA_ENGLISH)
     assert LANGUAGE_WARNING_MARKER in outcome["answer"]
@@ -223,7 +223,7 @@ def test_rule_based_fallback_is_not_checked(monkeypatch):
         calls.append(kwargs)
         return {"answer": "Ollama offline. Evidence: रत्नागिरी भात 61000", "model": "fallback", "is_fallback": True}
 
-    monkeypatch.setattr(pipeline.ollama_client, "generate_rag_answer", fallback)
+    monkeypatch.setattr(pipeline.llm_client, "generate_rag_answer", fallback)
     outcome = asyncio.run(pipeline._generate("प्रश्न", "प्रश्न", [CHUNK], "mr"))
     assert len(calls) == 1
     assert outcome["answer_language"] is None

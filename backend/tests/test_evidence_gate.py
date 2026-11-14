@@ -202,7 +202,7 @@ def test_pipeline_abstains_without_calling_the_llm(monkeypatch):
         raise AssertionError("LLM called despite missing evidence")
 
     monkeypatch.setattr(pipeline.faiss_retriever, "search_multi", lambda **_: [THANE, LATUR])
-    monkeypatch.setattr(pipeline.ollama_client, "generate_rag_answer", must_not_run)
+    monkeypatch.setattr(pipeline.llm_client, "generate_rag_answer", must_not_run)
     monkeypatch.setattr(pipeline, "current_evidence_index", lambda: EvidenceIndex(LEXICON, CORPUS_SCOPE, TABLES))
 
     result = asyncio.run(pipeline.answer_government_scheme_query(
@@ -225,7 +225,7 @@ def test_pipeline_sends_only_matching_tables_to_the_llm(monkeypatch):
 
     monkeypatch.setattr(pipeline.faiss_retriever, "search_multi", lambda **_: [THANE, RATNAGIRI])
     monkeypatch.setattr(pipeline.settings, "TABLE_LOOKUP_ENABLED", False)  # gate only; lookup is tested separately
-    monkeypatch.setattr(pipeline.ollama_client, "generate_rag_answer", fake_llm)
+    monkeypatch.setattr(pipeline.llm_client, "generate_rag_answer", fake_llm)
     monkeypatch.setattr(pipeline, "current_evidence_index", lambda: EvidenceIndex(LEXICON, CORPUS_SCOPE, TABLES))
 
     result = asyncio.run(pipeline.answer_government_scheme_query("रत्नागिरी जिल्ह्यात भात पिकासाठी विमा संरक्षित रक्कम किती?"))

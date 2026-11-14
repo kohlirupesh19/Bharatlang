@@ -1,172 +1,98 @@
-# BharatLangTech AI – Installation & Setup Guide
+# Installation
 
-This guide walks through configuring and running **BharatLangTech AI** on macOS with Apple Silicon (M1/M2/M3) using 100% open-source, local AI models.
+Tested on Windows 11 (office box, NVIDIA GPU) and Ubuntu 24.04 (AWS, CPU only). The original macOS scripts in `scripts/*.sh` are kept, but they assume Apple hardware and Homebrew and are no longer the reference setup.
 
----
+## 1. Prerequisites
 
-## 1. System Requirements
+| Tool | Notes |
+|---|---|
+| Python 3.12 | Managed with [uv](https://docs.astral.sh/uv/) |
+| Node 20+ and [pnpm](https://pnpm.io) | Frontend; use `pnpm`, not npm |
+| ffmpeg | Audio decoding |
+| Tesseract + Marathi data (`mar`) | Only for PDFs uploaded through the UI |
+| Ollama | Only if `LLM_PROVIDER=ollama` |
+| NVIDIA GPU + CUDA | Optional; needed for fast local speech-to-text |
 
-* **Operating System:** macOS Ventura (13.0) or later (macOS Sonoma / Sequoia tested).
-* **Processor:** Apple Silicon (M1, M2, M3, M4) with Metal acceleration.
-* **Unified Memory (RAM):** 16 GB recommended (8 GB supported in CPU quantized mode).
-* **Disk Space:** ~5 GB free space (for models, indexes, and dependencies).
-* **Network:** Required for initial dependency and model downloads; **zero internet required during runtime** (except optional Edge TTS fallback).
+Ubuntu: `sudo apt-get install ffmpeg tesseract-ocr tesseract-ocr-mar tesseract-ocr-eng build-essential`.
+Windows: install ffmpeg and Tesseract and put them on `PATH`, or set `FFMPEG_PATH` / `TESSERACT_PATH` in `.env`.
 
----
-
-## 2. Prerequisites Installation
-
-Install the required system CLI packages using [Homebrew](https://brew.sh):
-
-```bash
-# 1. Install Homebrew (if not already installed)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# 2. Install Audio Processing, OCR, and Ollama
-brew install ffmpeg tesseract ollama node
-```
-
-Verify the installations:
-```bash
-ffmpeg -version | head -n 1
-tesseract --version | head -n 1
-ollama --version
-node -v
-```
-
----
-
-## 3. Automated One-Command Setup
-
-The project includes automated setup and model downloading scripts:
+## 2. Backend
 
 ```bash
-# Clone and enter directory
-cd /path/to/Bharatlang
+uv venv --python 3.12 .venv
 
-# Step 1: Run environment setup
-# Sets up Python virtual environment (.venv), installs pip packages and npm modules
-bash scripts/setup.sh
+# CPU-only machines: install the small CPU build of torch first (avoids ~GBs of CUDA wheels)
+uv pip install --python .venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
 
-# Step 2: Download & pre-cache local AI models
-# Pulls Qwen2.5 1.5B via Ollama, downloads Marathi OCR traineddata, and caches multilingual-e5-small
-bash scripts/download_models.sh
+uv pip install --python .venv/bin/python -r requirements.txt
 ```
 
----
+`IndicTransToolkit` in `requirements.txt` needs a C compiler. The backend does not import it, so on Windows without Visual C++ build tools you can install everything else and leave it out.
 
-## 4. Manual Configuration (Optional)
+## 3. Data
 
-If you prefer to configure manually, examine the `.env` configuration file:
+`backend/data/` holds the corpus: `documents/` (GR PDFs, OCR results, `manifest.json`), `indexes/` (`faiss_index.bin`, `chunks_metadata.json`) and the SQLite database. A fresh clone needs either a copy of an existing `backend/data/` or a corpus build:
 
+```bash
+.venv/bin/python -m backend.app.services.rag.corpus.build --dry-run   # check first
+.venv/bin/python -m backend.app.services.rag.corpus.build
+```
+
+The build uses OCR results that are already in `documents/ocr/`. Producing new OCR needs Surya on a GPU (`scripts/ocr_corpus.ps1`).
+
+Models download on first use into the Hugging Face cache: `intfloat/multilingual-e5-small` (~0.5 GB) and any Whisper model selected. Converted Marathi Whisper models are expected under `models/ct2/<name>` (`ASR_CT2_DIR`).
+
+## 4. Configuration (`.env`)
+
+Copy `.env.example` to `.env`. Typical settings:
+
+**Office / local GPU**
 ```ini
-# Environment Configuration
-PROJECT_NAME="BharatLangTech AI"
-ENVIRONMENT="development"
-DEBUG=true
-
-# Apple Silicon Acceleration
-USE_MPS=true
-TORCH_DTYPE="float32"
-
-# Ollama LLM Configuration
-OLLAMA_BASE_URL="http://localhost:11434"
-OLLAMA_MODEL="qwen2.5:1.5b"
-OLLAMA_CONTEXT_WINDOW=1536
-OLLAMA_TEMPERATURE=0.1
-
-# Speech Recognition (ASR)
-DEFAULT_ASR_ENGINE="faster-whisper-small"
-WHISPER_DEVICE="cpu"
-WHISPER_COMPUTE_TYPE="int8"
-
-# Vector Search (RAG)
-EMBEDDING_MODEL_NAME="intfloat/multilingual-e5-small"
-RETRIEVAL_TOP_K=3
-RETRIEVAL_SIMILARITY_THRESHOLD=0.30
-
-# File Paths
-DATA_DIR="backend/data"
-UPLOADS_DIR="backend/data/uploads"
-INDEXES_DIR="backend/data/indexes"
-AUDIO_CACHE_DIR="backend/data/audio_cache"
-TESSDATA_PREFIX="backend/data/tessdata"
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=qwen3.5:9b
+OLLAMA_THINK=false
+ASR_ACTIVE_MODEL=indicwhisper-medium-mr
+WHISPER_DEVICE=cuda
+WHISPER_COMPUTE_TYPE=int8_float16
+EMBEDDING_DEVICE=cpu
 ```
 
----
+**Cloud / CPU only (as on AWS)**
+```ini
+LLM_PROVIDER=bedrock
+BEDROCK_REGION=ap-southeast-2
+BEDROCK_MODEL_ID=qwen.qwen3-32b-v1:0
+ASR_ACTIVE_MODEL=assemblyai        # needs ASSEMBLYAI_API_KEY; much weaker for Marathi than IndicWhisper
+WHISPER_DEVICE=cpu
+WHISPER_COMPUTE_TYPE=int8
+EMBEDDING_DEVICE=cpu
+```
 
-## 5. Starting the Application
+Bedrock credentials come from the standard AWS chain: an EC2 instance role in production, an AWS profile or environment variables elsewhere. Never put AWS keys in `.env`. The role or user needs `bedrock:InvokeModel` on the chosen model.
 
-You can launch both the FastAPI Backend and Vite React Frontend with a single command:
+## 5. Run
 
 ```bash
-bash scripts/start.sh
+# LLM (local option)
+ollama pull qwen3.5:9b
+
+# API
+.venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+
+# Frontend dev server (proxies /api and /static to :8000)
+cd frontend && pnpm install && pnpm dev     # http://localhost:5173
 ```
 
-This script:
-1. Verifies that Ollama is active on port 11434.
-2. Starts the FastAPI server on `http://localhost:8000`.
-3. Waits for the `/api/health` probe to confirm system readiness.
-4. Starts the React development server on `http://localhost:5173`.
-5. Gracefully terminates both processes on `Ctrl + C`.
+Production build of the frontend: `cd frontend && pnpm run build` (type-checks with `tsc -b`, output in `frontend/dist/`). Serve `dist/` from any static server that also proxies `/api` and `/static` to the backend.
 
-### Running Components Individually
+Windows office box: `powershell -File scripts\start_services.ps1` starts Ollama, uvicorn and Vite detached.
 
-**FastAPI Backend only:**
-```bash
-bash scripts/run_backend.sh
-# Accessible at http://localhost:8000
-# Interactive Swagger docs: http://localhost:8000/docs
-```
+Check it is up: `GET http://127.0.0.1:8000/api/health` shows the LLM provider and whether it is reachable, the ASR engines and the index size.
 
-**React Frontend only:**
-```bash
-bash scripts/run_frontend.sh
-# Accessible at http://localhost:5173
-```
-
----
-
-## 6. Running the Test Suite
-
-Execute the comprehensive automated test suite:
+## 6. Tests
 
 ```bash
-source .venv/bin/activate
-pytest backend/tests/ -v
+.venv/bin/python -m pytest backend/tests -q -p no:cacheprovider
 ```
 
-This verifies:
-* End-to-end grounded scheme retrieval (Scenario 1)
-* Varhadi dialect normalization (Scenario 2)
-* Out-of-domain rejection without hallucination (Scenario 4)
-* Health endpoint diagnostic checks (Scenario 6)
-* ASR engine switching (Scenario 7)
-* Upload validation and security bounds (Scenario 8)
-* Citizen feedback loop and admin review (Scenario 9)
-
----
-
-## 7. Troubleshooting
-
-### Issue: Ollama connection refused (`ConnectionRefusedError: [Errno 61]`)
-* **Solution:** Verify the Ollama service is running:
-  ```bash
-  brew services restart ollama
-  # Or start in foreground
-  ollama serve
-  ```
-
-### Issue: Tesseract cannot find Marathi data (`mar.traineddata`)
-* **Solution:** Ensure `mar.traineddata` exists inside `backend/data/tessdata/`:
-  ```bash
-  curl -L "https://github.com/tesseract-ocr/tessdata_fast/raw/main/mar.traineddata" -o backend/data/tessdata/mar.traineddata
-  ```
-
-### Issue: Port 8000 or 5173 already in use
-* **Solution:** Terminate any stale processes:
-  ```bash
-  lsof -ti:8000 | xargs kill -9
-  lsof -ti:5173 | xargs kill -9
-  ```
-
+The end-to-end tests (`test_api_e2e.py`) need the real index and a reachable LLM. On Windows, print Devanagari with `PYTHONUTF8=1`. When sending Marathi with `curl` from Git Bash, use `--data-binary @file.json` (UTF-8); inline `-d '…'` turns it into `???`.

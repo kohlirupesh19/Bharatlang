@@ -56,7 +56,7 @@ def _patch_pipeline(monkeypatch, semantic, seen):
 
     monkeypatch.setattr(pipeline.faiss_retriever, "search_multi", lambda **_: semantic)
     monkeypatch.setattr(pipeline.faiss_retriever, "score_positions", score_positions)
-    monkeypatch.setattr(pipeline.ollama_client, "generate_rag_answer", fake_llm)
+    monkeypatch.setattr(pipeline.llm_client, "generate_rag_answer", fake_llm)
     monkeypatch.setattr(pipeline, "current_evidence_index", lambda: EvidenceIndex(LEXICON, CORPUS_SCOPE, TABLES))
     return pipeline
 

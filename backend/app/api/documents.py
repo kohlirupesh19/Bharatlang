@@ -7,6 +7,7 @@ from backend.app.database.session import get_db
 from backend.app.database.models import Document
 from backend.app.services.rag.ingestion import ingest_pdf_document
 from backend.app.services.rag.retrieval import faiss_retriever
+from backend.app.services.rag.corpus.sources import CorpusSourcesError, load_corpus_sources
 from backend.app.core.config import settings
 from backend.app.core.security import validate_document_file, sanitize_filename
 from backend.app.core.logging import logger
@@ -81,6 +82,18 @@ async def list_documents(db: Session = Depends(get_db)):
             } for d in docs
         ]
     }
+
+@router.get("/sources")
+def list_corpus_sources():  # sync: reads a small file, so FastAPI runs it in its threadpool
+    """Lists the official documents the knowledge base is built from (public fields only)."""
+    try:
+        sources = load_corpus_sources(settings.DOCUMENTS_DIR / "manifest.json")
+    except CorpusSourcesError as exc:
+        logger.error(f"Corpus sources unavailable: {exc}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="The document list is not available right now.")
+    return {"total": len(sources), "documents": [s.model_dump() for s in sources]}
+
 
 @router.delete("/{document_id}")
 async def delete_document(document_id: str, db: Session = Depends(get_db)):

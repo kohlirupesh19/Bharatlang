@@ -1,13 +1,34 @@
+// Citizen-facing strings. Keep these free of technical terms (model, engine or library
+// names, "RAG", "LLM", "ASR", latency, confidence scores): operator strings live in
+// adminTranslations.ts, which only the lazily loaded admin screens import.
+
+export interface HowItWorksStep {
+  title: string;
+  desc: string;
+}
+
+export interface SampleQuery {
+  tag: string;
+  query: string;
+  meaning: string;
+}
+
 export interface TranslationDictionary {
   nav: {
     home: string;
     voice: string;
     chat: string;
-    kb: string;
-    eval: string;
+    docs: string;
+    manageDocs: string;
+    qualityChecks: string;
     dialectBadge: string;
     tagline: string;
-    appleM2: string;
+  };
+  status: {
+    checking: string;
+    available: string;
+    unavailable: string;
+    unavailableHint: string;
   };
   home: {
     badge: string;
@@ -16,23 +37,13 @@ export interface TranslationDictionary {
     description: string;
     btnVoice: string;
     btnChat: string;
-    btnKb: string;
-    statusAsrTitle: string;
-    statusAsrDesc: string;
-    statusDialectTitle: string;
-    statusDialectDesc: string;
-    statusLlmTitle: string;
-    statusLlmDesc: string;
-    statusRagTitle: string;
-    statusRagDesc: string;
+    btnDocs: string;
+    howTitle: string;
+    steps: HowItWorksStep[];
     demoTitle: string;
     demoSubtitle: string;
     askButton: string;
-    sampleQueries: Array<{
-      tag: string;
-      query: string;
-      meaning: string;
-    }>;
+    sampleQueries: SampleQuery[];
   };
   voice: {
     title: string;
@@ -40,21 +51,19 @@ export interface TranslationDictionary {
     recordStart: string;
     recordStop: string;
     recordingTime: string;
+    recordingLength: string;
     uploadAudio: string;
     processing: string;
     previewTitle: string;
-    detectedDialect: string;
-    originalTranscript: string;
-    normalizedQuery: string;
+    yourRecording: string;
     editTranscript: string;
+    understoodAs: string;
     saveEdit: string;
-    cancelEdit: string;
     submitToChat: string;
-    confidence: string;
-    duration: string;
+    uncertainNotice: string;
     noAudioRecorded: string;
+    requestFailed: string;
     micPermissionError: string;
-    dialectNote: string;
   };
   chat: {
     title: string;
@@ -64,72 +73,44 @@ export interface TranslationDictionary {
     thinking: string;
     sourcesTitle: string;
     page: string;
-    similarity: string;
     viewEnglish: string;
-    hideEnglish: string;
     translating: string;
+    englishLabel: string;
     audioListen: string;
-    audioPlaying: string;
     dialectBadge: string;
-    normalizedBadge: string;
     ratePrompt: string;
     rateCorrectionPlaceholder: string;
     submitFeedback: string;
-    feedbackSuccess: string;
+    feedbackThanks: string;
     emptyChatPrompt: string;
+    errorAnswer: string;
+    actionFailed: string;
+    checkSource: string;
   };
-  kb: {
+  docs: {
     title: string;
     subtitle: string;
-    uploadHeader: string;
-    fileLabel: string;
-    titleLabel: string;
-    authorityLabel: string;
-    uploadBtn: string;
-    uploading: string;
-    statsTotalDocs: string;
-    statsTotalChunks: string;
-    indexedListHeader: string;
-    docDelete: string;
-    rebuildBtn: string;
-    rebuilding: string;
+    countLabel: string;
+    grNumber: string;
+    issued: string;
+    openOfficial: string;
+    superseded: string;
     emptyList: string;
+    loadError: string;
   };
-  eval: {
-    title: string;
-    subtitle: string;
-    btnRunAsr: string;
-    btnRunRag: string;
-    runningAsr: string;
-    runningRag: string;
-    asrSectionTitle: string;
-    modelSelectLabel: string;
-    werLabel: string;
-    werDesc: string;
-    cerLabel: string;
-    cerDesc: string;
-    exactMatchLabel: string;
-    exactMatchDesc: string;
-    latencyLabel: string;
-    latencyDesc: string;
-    categoryBreakdownTitle: string;
-    samplesCount: string;
-    ragSectionTitle: string;
-    recallLabel: string;
-    recallDesc: string;
-    precisionLabel: string;
-    precisionDesc: string;
-    mrrLabel: string;
-    mrrDesc: string;
-    suppressionLabel: string;
-    suppressionDesc: string;
-    noDataTitle: string;
-    noDataDesc: string;
+  dialects: {
+    standard: string;
+    varhadi: string;
   };
   footer: {
     text: string;
   };
 }
+
+// The sample questions are asked in Marathi or Varhadi in every UI language.
+const VARHADI_LOAN_QUERY = 'मले शेतीसाठी कर्जमाफी आणि शासकीय अनुदान कसं भेटन ते सांगा.';
+const NAMO_QUERY = 'नमो शेतकरी महासन्मान निधी योजनेसाठी पात्रता निकष आणि आवश्यक कागदपत्रे कोणती आहेत?';
+const CROP_QUERY = 'अतिवृष्टीमुळे कापूस आणि सोयाबीन पिकाचे नुकसान झाल्यास नुकसान भरपाई कशी मागता येईल?';
 
 export const translations: Record<string, TranslationDictionary> = {
   // 1. Marathi (प्रमाण मराठी)
@@ -138,435 +119,333 @@ export const translations: Record<string, TranslationDictionary> = {
       home: 'मुख्य पान',
       voice: 'आवाज सहाय्यक',
       chat: 'संभाषण',
-      kb: 'ज्ञान भांडार',
-      eval: 'मूल्यांकन',
+      docs: 'शासकीय कागदपत्रे',
+      manageDocs: 'कागदपत्र व्यवस्थापन',
+      qualityChecks: 'गुणवत्ता तपासणी',
       dialectBadge: 'बोलीभाषा जाणकार',
-      tagline: 'स्थानिक भाषा व बोलीभाषा बहुभाषिक सहाय्यक',
-      appleM2: 'Apple M2 (MPS)'
+      tagline: 'स्थानिक भाषा व बोलीभाषा बहुभाषिक सहाय्यक'
+    },
+    status: {
+      checking: 'सेवा तपासत आहे…',
+      available: 'सेवा उपलब्ध',
+      unavailable: 'सेवा तात्पुरती अनुपलब्ध',
+      unavailableHint: 'सध्या उत्तरे देण्यात अडचण येत आहे, त्यामुळे उत्तरे अपूर्ण असू शकतात. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा.'
     },
     home: {
-      badge: 'ओपन-सोर्स स्थानिक बुद्धिमत्ता • १००% स्थानिकरित्या चालणारे',
+      badge: 'अधिकृत शासकीय कागदपत्रांतून, पान क्रमांकासह उत्तरे',
       title: 'BharatLangTech AI',
       subtitle: 'स्थानिक भाषा आणि बोलीभाषा जाणणारा बहुभाषिक कृषी व शासकीय योजना सहाय्यक',
-      description: 'विदर्भातील वऱ्हाडी आणि प्रमाण मराठी बोलणाऱ्या नागरिकांसाठी तयार केलेले विशेष व्हॉईस प्लॅटफॉर्म. अधिकृत महाराष्ट्र शासन निर्णय आणि शेतकरी योजनांवर आधारित थेट अचूक उत्तरे.',
-      btnVoice: 'बोलून प्रश्न विचारा (Voice Assistant)',
-      btnChat: 'टाइप करून विचारा (Text Chat)',
-      btnKb: 'सरकारी जीआर कागदपत्रे (PDF Knowledge)',
-      statusAsrTitle: 'ध्वनी रूपांतरण (ASR)',
-      statusAsrDesc: 'Int8 CTranslate2 (Apple Silicon CPU) • अचूक मराठी व वऱ्हाडी ध्वनी ओळख',
-      statusDialectTitle: 'बोलीभाषा व भाषांतर',
-      statusDialectDesc: 'मूळ उच्चार जतन करून प्रमाण मराठी सामान्यीकरण • NLLB-200 / IndicTrans2',
-      statusLlmTitle: 'स्थानिक भाषा मॉडेल (LLM)',
-      statusLlmDesc: 'Ollama Qwen2.5 1.5B (Apple Metal) • शून्य क्लाउड खर्च व गोपनीयता',
-      statusRagTitle: 'ज्ञान भांडार (RAG)',
-      statusRagDesc: 'Multilingual E5 + FAISS • PyMuPDF आणि देवनागरी Tesseract OCR',
-      demoTitle: 'विदर्भातील शेतकरी प्रात्यक्षिक उदाहरणे (Farmer Demonstration Queries)',
-      demoSubtitle: 'खालीलपैकी कोणत्याही प्रश्नावर क्लिक करून वऱ्हाडी किंवा मराठी भाषेत थेट अचूक पुरावा-आधारित उत्तर तपासा:',
+      description: 'विदर्भातील वऱ्हाडी आणि प्रमाण मराठी बोलणाऱ्या शेतकऱ्यांसाठी. नमो शेतकरी, पीएम-किसान, पीक विमा व कर्जमुक्ती योजनांबद्दल प्रश्न विचारा; उत्तरे महाराष्ट्र शासनाच्या अधिकृत निर्णयांवर आधारित असतात.',
+      btnVoice: 'बोलून प्रश्न विचारा',
+      btnChat: 'टाइप करून विचारा',
+      btnDocs: 'शासकीय कागदपत्रे पहा',
+      howTitle: 'हे कसे काम करते',
+      steps: [
+        {
+          title: 'बोलून किंवा टाइप करून विचारा',
+          desc: 'मराठी, वऱ्हाडी, हिंदी किंवा इंग्रजीत विचारा. बोललेला प्रश्न आधी मजकुरात दिसतो; तो तपासून हवे तर दुरुस्त करा.'
+        },
+        {
+          title: 'अधिकृत कागदपत्रांतून उत्तर',
+          desc: 'उत्तर शासनाच्या अधिकृत योजना कागदपत्रांवर आधारित असते आणि सोबत कागदपत्राचे नाव व पान क्रमांक दिला जातो.'
+        },
+        {
+          title: 'मूळ कागदपत्र तपासा',
+          desc: 'हा सहाय्यक चुकू शकतो. अर्ज करण्यापूर्वी किंवा निर्णय घेण्यापूर्वी दिलेले पान तपासा, किंवा जवळच्या कृषी कार्यालयात खात्री करा.'
+        }
+      ],
+      demoTitle: 'उदाहरण प्रश्न',
+      demoSubtitle: 'उत्तर पाहण्यासाठी खालीलपैकी कोणत्याही प्रश्नावर क्लिक करा:',
       askButton: 'हा प्रश्न विचारा',
       sampleQueries: [
-        {
-          tag: 'वऱ्हाडी बोली (Varhadi Vidarbha)',
-          query: 'मले शेतीसाठी कर्जमाफी आणि शासकीय अनुदान कसं भेटन ते सांगा.',
-          meaning: 'शेतकरी कर्जमाफी आणि शासकीय अनुदानाचा लाभ कसा मिळवता येईल?'
-        },
-        {
-          tag: 'प्रमाण मराठी (Standard Marathi)',
-          query: 'नमो शेतकरी महासन्मान निधी योजनेसाठी पात्रता निकष आणि आवश्यक कागदपत्रे कोणती आहेत?',
-          meaning: 'नमो शेतकरी सन्मान निधी योजनेची सविस्तर पात्रता व कागदपत्रे.'
-        },
-        {
-          tag: 'पीक विमा चौकशी (Crop Insurance)',
-          query: 'अतिवृष्टीमुळे कापूस आणि सोयाबीन पिकाचे नुकसान झाल्यास नुकसान भरपाई कशी मागता येईल?',
-          meaning: '१ रुपयात पीक विमा योजनेअंतर्गत ७२ तासांत नुकसानीची पूर्वसूचना कशी द्यावी?'
-        }
+        { tag: 'वऱ्हाडी बोली', query: VARHADI_LOAN_QUERY, meaning: 'शेतकरी कर्जमाफी आणि शासकीय अनुदानाचा लाभ कसा मिळवता येईल?' },
+        { tag: 'प्रमाण मराठी', query: NAMO_QUERY, meaning: 'नमो शेतकरी महासन्मान निधी योजनेची पात्रता व कागदपत्रे.' },
+        { tag: 'पीक विमा', query: CROP_QUERY, meaning: 'अतिवृष्टीने कापूस व सोयाबीनचे नुकसान झाल्यास पीक विम्याची भरपाई कशी मागावी?' }
       ]
     },
     voice: {
-      title: 'आवाज सहाय्यक (Voice Scheme Assistant)',
-      subtitle: 'मायक्रोफोन वापरून वऱ्हाडी किंवा मराठीत बोला, किंवा रेकॉर्ड केलेली ऑडिओ फाईल अपलोड करा.',
-      recordStart: 'माईक सुरू करा (Record)',
-      recordStop: 'थांबवा (Stop)',
+      title: 'आवाज सहाय्यक',
+      subtitle: 'माईक दाबून वऱ्हाडी किंवा मराठीत बोला, किंवा रेकॉर्ड केलेली ऑडिओ फाईल निवडा.',
+      recordStart: 'बोला',
+      recordStop: 'थांबवा',
       recordingTime: 'रेकॉर्डिंग वेळ',
-      uploadAudio: 'ऑडिओ फाईल अपलोड करा (WAV, MP3, WebM)',
-      processing: 'ध्वनी प्रक्रिया व ओळख चालू आहे...',
-      previewTitle: 'ओळखलेला मजकूर व बोलीभाषा विश्लेषण',
-      detectedDialect: 'ओळखलेली बोलीभाषा',
-      originalTranscript: 'मूळ बोललेला मजकूर (Original Spoken)',
-      normalizedQuery: 'प्रमाणित मराठी प्रश्न (Normalized for RAG)',
-      editTranscript: 'मजकूर सुधारा (Edit)',
-      saveEdit: 'सुधारणा जतन करा व पुन्हा तपासा',
-      cancelEdit: 'रद्द करा',
+      recordingLength: 'रेकॉर्डिंगची लांबी',
+      uploadAudio: 'ऑडिओ फाईल निवडा',
+      processing: 'तुमचा आवाज ऐकत आहे...',
+      previewTitle: 'तुम्ही विचारलेला प्रश्न',
+      yourRecording: 'तुमचे रेकॉर्डिंग',
+      editTranscript: 'हा मजकूर बरोबर आहे का? गरज असल्यास दुरुस्त करा',
+      understoodAs: 'प्रमाण मराठीत तुमचा प्रश्न',
+      saveEdit: 'पुन्हा तपासा',
       submitToChat: 'या प्रश्नाचे उत्तर मिळवा',
-      confidence: 'अचूकता विश्वासार्हता (Confidence)',
-      duration: 'प्रक्रिया वेळ',
-      noAudioRecorded: 'कृपया आधी बोला किंवा ऑडिओ फाईल अपलोड करा.',
-      micPermissionError: 'मायक्रोफोन परवानगी नाकारली किंवा मायक्रोफोन उपलब्ध नाही.',
-      dialectNote: 'तुमचा मूळ बोललेला मजकूर जतन केला जातो व तो कधीही बदलला जात नाही.'
+      uncertainNotice: 'तुमचा आवाज कदाचित नीट ऐकू आला नाही. खालील मजकूर तपासून दुरुस्त करा, किंवा पुन्हा बोला.',
+      noAudioRecorded: 'आवाज ओळखता आला नाही. कृपया पुन्हा बोला किंवा प्रश्न टाइप करा.',
+      requestFailed: 'सध्या तुमचे रेकॉर्डिंग तपासता आले नाही. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा किंवा प्रश्न टाइप करा.',
+      micPermissionError: 'मायक्रोफोन परवानगी नाकारली किंवा मायक्रोफोन उपलब्ध नाही.'
     },
     chat: {
-      title: 'शासकीय योजना थेट संभाषण (Grounded Chat)',
-      subtitle: 'शासनाच्या अधिकृत अध्यादेशानुसार पुरावा-आधारित उत्तरे, मूळ कागदपत्रांचे संदर्भ व पानांसह.',
+      title: 'शासकीय योजनांबद्दल विचारा',
+      subtitle: 'उत्तरे अधिकृत शासकीय कागदपत्रांवर आधारित, कागदपत्राचे नाव व पान क्रमांकासह.',
       inputPlaceholder: 'तुमचा प्रश्न येथे मराठी किंवा वऱ्हाडीत टाइप करा (उदा. कर्जमाफीची पात्रता काय आहे?)...',
       sendButton: 'पाठवा',
-      thinking: 'शासकीय कागदपत्रांचा शोध घेऊन अचूक उत्तर तयार करत आहे...',
-      sourcesTitle: 'संदर्भित शासकीय कागदपत्रे व पृष्ठ क्रमांक (Verified Citations)',
-      page: 'पृष्ठ क्र.',
-      similarity: 'सुसंगतता गुणांक',
-      viewEnglish: 'इंग्रजी भाषांतर पहा (English Translation)',
-      hideEnglish: 'इंग्रजी लपवा',
+      thinking: 'शासकीय कागदपत्रे तपासून उत्तर तयार करत आहे...',
+      sourcesTitle: 'संदर्भ: शासकीय कागदपत्रे व पान क्रमांक',
+      page: 'पान',
+      viewEnglish: 'इंग्रजीत पहा',
       translating: 'इंग्रजीत भाषांतर होत आहे...',
-      audioListen: 'मराठीत उत्तर ऐका (Audio)',
-      audioPlaying: 'ऑडिओ प्ले होत आहे...',
+      englishLabel: 'इंग्रजी भाषांतर',
+      audioListen: 'मराठीत उत्तर ऐका',
       dialectBadge: 'बोलीभाषा',
-      normalizedBadge: 'प्रमाणित रूप',
       ratePrompt: 'हे उत्तर उपयुक्त आणि अचूक होते का?',
       rateCorrectionPlaceholder: 'काही त्रुटी किंवा सुधारणा असल्यास येथे लिहा...',
-      submitFeedback: 'अभिप्राय नोंदवा',
-      feedbackSuccess: 'धन्यवाद! तुमचा अभिप्राय प्रशासकीय तपासणीसाठी नोंदवला गेला आहे.',
-      emptyChatPrompt: 'कोणताही प्रश्न विचारा किंवा वरील प्रात्यक्षिक प्रश्नांपैकी एक निवडा.'
+      submitFeedback: 'अभिप्राय पाठवा',
+      feedbackThanks: 'धन्यवाद!',
+      emptyChatPrompt: 'तुमचा प्रश्न खाली मराठी, वऱ्हाडी, हिंदी किंवा इंग्रजीत लिहा.',
+      errorAnswer: 'माफ करा, सध्या उत्तर देता आले नाही. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा.',
+      actionFailed: 'काहीतरी चुकले. कृपया पुन्हा प्रयत्न करा.',
+      checkSource: 'निर्णय घेण्यापूर्वी दिलेले मूळ पान तपासा.'
     },
-    kb: {
-      title: 'शासकीय कागदपत्रे ज्ञान भांडार (Knowledge Base)',
-      subtitle: 'महाराष्ट्र शासनाचे अधिकृत जीआर व परिपत्रके अपलोड करा. PyMuPDF आणि Tesseract OCR द्वारे थेट इंडेक्सिंग.',
-      uploadHeader: 'नवीन शासकीय अध्यादेश / जीआर (PDF) अपलोड करा',
-      fileLabel: 'PDF फाईल निवडा',
-      titleLabel: 'योजनेचे नाव / कागदपत्राचे शीर्षक',
-      authorityLabel: 'निर्गमित विभाग / प्राधिकरण',
-      uploadBtn: 'कागदपत्र प्रोसेस व इंडेक्स करा',
-      uploading: 'दस्तऐवज स्कॅनिंग व OCR प्रक्रिया चालू आहे...',
-      statsTotalDocs: 'एकूण कागदपत्रे',
-      statsTotalChunks: 'इंडेक्स केलेले परिच्छेद',
-      indexedListHeader: 'ज्ञान भांडारातील उपलब्ध शासकीय दस्तऐवज',
-      docDelete: 'हटवा',
-      rebuildBtn: 'इंडेक्स पुन्हा तयार करा',
-      rebuilding: 'पुन्हा इंडेक्स करत आहे...',
-      emptyList: 'कोणतेही कागदपत्र अपलोड केलेले नाही.'
+    docs: {
+      title: 'शासकीय कागदपत्रे',
+      subtitle: 'सहाय्यक खालील अधिकृत कागदपत्रांवरून उत्तरे देतो. प्रत्येक कागदपत्राची मूळ प्रत शासनाच्या संकेतस्थळावर पाहता येते.',
+      countLabel: 'कागदपत्रे',
+      grNumber: 'शासन निर्णय क्र.',
+      issued: 'दिनांक',
+      openOfficial: 'मूळ प्रत उघडा',
+      superseded: 'नव्या शासन निर्णयाने बदलले',
+      emptyList: 'सध्या कोणतेही कागदपत्र उपलब्ध नाही.',
+      loadError: 'कागदपत्रांची यादी आणता आली नाही. कृपया पुन्हा प्रयत्न करा.'
     },
-    eval: {
-      title: 'मूल्यांकन व अचूकता डॅशबोर्ड (Evaluation Dashboard)',
-      subtitle: 'मानव-सत्यापित संदर्भ संचावर आधारित प्रत्यक्ष मोजलेली अचूकता आकडेवारी (Zero Fabricated Metrics).',
-      btnRunAsr: 'ASR चाचणी चालवा',
-      btnRunRag: 'RAG बेंचमार्क चालवा',
-      runningAsr: 'ASR चाचणी चालू...',
-      runningRag: '३० प्रश्नांची चाचणी चालू...',
-      asrSectionTitle: 'ध्वनी ओळख मूल्यमापन (Speech Recognition - WER & CER)',
-      modelSelectLabel: 'मॉडेल निवडा:',
-      werLabel: 'Word Error Rate (WER)',
-      werDesc: 'शब्दांमधील त्रुटीचे प्रमाण (कमी तितके चांगले)',
-      cerLabel: 'Character Error Rate (CER)',
-      cerDesc: 'अक्षरांमधील त्रुटीचे प्रमाण',
-      exactMatchLabel: 'अचूक जुळणी (Exact Match)',
-      exactMatchDesc: '१००% अचूक वाक्ये',
-      latencyLabel: 'सरासरी वेळ (Latency)',
-      latencyDesc: 'प्रति वाक्य प्रक्रियेची वेळ',
-      categoryBreakdownTitle: 'बोलीभाषा वर्गीकरण विश्लेषण (Dialect-Specific Breakdown)',
-      samplesCount: 'चाचणी वाक्ये',
-      ragSectionTitle: 'शासकीय योजना शोध अचूकता (RAG Retrieval - 30 Question Benchmark)',
-      recallLabel: 'Recall @ Top 4',
-      recallDesc: 'अपेक्षित माहिती सापडण्याचे प्रमाण',
-      precisionLabel: 'Precision @ Top 4',
-      precisionDesc: 'शोधलेल्या उताऱ्यांची सुसंगतता',
-      mrrLabel: 'Mean Reciprocal Rank (MRR)',
-      mrrDesc: 'पहिल्या योग्य परिच्छेदाची क्रमवारी',
-      suppressionLabel: 'अप्रासंगिक प्रश्न रोखणे',
-      suppressionDesc: 'काल्पनिक माहिती न देण्याचे प्रमाण',
-      noDataTitle: 'कोणतीही चाचणी आकडेवारी उपलब्ध नाही',
-      noDataDesc: 'प्रत्यक्ष मॉडेल तपासण्यासाठी वरील "बेंचमार्क चालवा" बटण दाबा.'
+    dialects: {
+      standard: 'प्रमाण मराठी',
+      varhadi: 'वऱ्हाडी (विदर्भ)'
     },
     footer: {
-      text: '© २०२६ BharatLangTech AI — भारतीय नागरिकांसाठी बोलीभाषा-जाणकार बहुभाषिक व्हॉईस प्लॅटफॉर्म. सर्व मॉडेल्स Apple Silicon (M2) वर ऑफलाइन चालतात. कोणतीही सशुल्क क्लाउड API नाही.'
+      text: '© २०२६ BharatLangTech AI — शासकीय योजनांसाठी बोलीभाषा जाणणारा मराठी सहाय्यक. उत्तरे अधिकृत कागदपत्रांवर आधारित आहेत; कृपया संदर्भित मूळ दस्तऐवज तपासा.'
     }
   },
 
   // 2. Varhadi (वऱ्हाडी बोली - विदर्भ)
   'mr-varhadi': {
     nav: {
-      home: 'घर (Home)',
-      voice: 'बोलून पहा (Voice)',
-      chat: 'संवाद (Chat)',
-      kb: 'सरकारी कागदपत्रे',
-      eval: 'तपासणी (Evaluation)',
+      home: 'घर',
+      voice: 'बोलून इचारा',
+      chat: 'लिहून इचारा',
+      docs: 'सरकारी कागदपत्रे',
+      manageDocs: 'कागदपत्र व्यवस्थापन',
+      qualityChecks: 'गुणवत्ता तपासणी',
       dialectBadge: 'वऱ्हाडी बोली',
-      tagline: 'विदर्भातील शेतकरी बांधवांसाठी आपली बोलीभाषा सहाय्यक',
-      appleM2: 'Apple M2 (MPS)'
+      tagline: 'विदर्भातील शेतकरी बांधवांसाठी आपल्या बोलीतला सहाय्यक'
+    },
+    status: {
+      checking: 'सेवा तपासणं चालू हाय…',
+      available: 'सेवा चालू हाय',
+      unavailable: 'सेवा थोडा वेळ बंद हाय',
+      unavailableHint: 'आत्ता उत्तर द्यायला अडचण येऊन रायली, उत्तर अधुरं असू शकते. थोड्या वेळानं पुन्हा इचारा.'
     },
     home: {
-      badge: 'आपली स्थानिक बुद्धिमत्ता • १००% आपल्याच कॉम्प्युटरवर',
+      badge: 'सरकारी जीआरमधूनच उत्तर • पान नंबरसह',
       title: 'BharatLangTech AI',
       subtitle: 'आपल्या वऱ्हाडी बोलीभाषेत शेती आणि सरकारी योजनांची खरी माहिती',
-      description: 'विदर्भातील शेतकरी भावांसाठी खास वऱ्हाडी व मराठी व्हॉईस प्लॅटफॉर्म. सरकारने काढलेले जीआर तपासून थेट व अचूक उत्तर भेटन.',
-      btnVoice: 'माईकमध्ये बोलून इचारा (Voice Assistant)',
-      btnChat: 'टाइप करून इचारा (Text Chat)',
-      btnKb: 'सरकारी कागदपत्रे पहा (PDF Knowledge)',
-      statusAsrTitle: 'आवाज ऐकणे (ASR)',
-      statusAsrDesc: 'Int8 CTranslate2 • वऱ्हाडी आणि मराठी उच्चार अचूक ओळखते',
-      statusDialectTitle: 'बोलीभाषा समजून घेणे',
-      statusDialectDesc: 'आपला शब्द जसाच्या तसा ठेवून सरकारी भाषेशी जुळवून घेते',
-      statusLlmTitle: 'आपले स्थानिक मॉडेल (LLM)',
-      statusLlmDesc: 'Ollama Qwen2.5 1.5B • नेट नसलं तरी चालेल, मोफत व सुरक्षित',
-      statusRagTitle: 'सरकारी ज्ञान भांडार (RAG)',
-      statusRagDesc: 'Multilingual E5 + FAISS • कागदपत्रातील अचूक पान शोधून देते',
-      demoTitle: 'शेतकरी भावांनी विचारलेले प्रश्न (Farmer Demonstration Queries)',
-      demoSubtitle: 'खालीलपैकी कोणत्याही प्रश्नावर टिचकी मारून पहा, थेट पुराव्यासह उत्तर भेटन:',
+      description: 'विदर्भातील शेतकरी भावांसाठी वऱ्हाडी अन् मराठीत. नमो शेतकरी, पीएम-किसान, पीक विमा अन् कर्जमुक्तीबद्दल इचारा; उत्तर सरकारी जीआर तपासूनच भेटन.',
+      btnVoice: 'माईकमध्ये बोलून इचारा',
+      btnChat: 'टाइप करून इचारा',
+      btnDocs: 'सरकारी कागदपत्रे पहा',
+      howTitle: 'हे कसं चालते',
+      steps: [
+        {
+          title: 'बोलून नाहीतर लिहून इचारा',
+          desc: 'वऱ्हाडी, मराठी, हिंदी नाहीतर इंग्रजीत इचारा. बोललेला प्रश्न आधी लिहिलेला दिसते; चुकला तर दुरुस्त करा.'
+        },
+        {
+          title: 'सरकारी कागदपत्रातूनच उत्तर',
+          desc: 'उत्तर सरकारी योजनांच्या अधिकृत कागदपत्रांवरून भेटते, सोबत कागदपत्राचं नाव अन् पान नंबर.'
+        },
+        {
+          title: 'मूळ कागद एकदा पाहा',
+          desc: 'हा सहाय्यक चुकू शकते. अर्ज करण्याआधी दिलेलं पान पाहा, नाहीतर जवळच्या कृषी कार्यालयात इचारून घ्या.'
+        }
+      ],
+      demoTitle: 'शेतकरी भावांनी इचारलेले प्रश्न',
+      demoSubtitle: 'कोणत्याही प्रश्नावर टिचकी मारा, पुराव्यासह उत्तर भेटन:',
       askButton: 'हा प्रश्न इचारा',
       sampleQueries: [
-        {
-          tag: 'वऱ्हाडी बोली (Varhadi Vidarbha)',
-          query: 'मले शेतीसाठी कर्जमाफी आणि शासकीय अनुदान कसं भेटन ते सांगा.',
-          meaning: 'कर्जमाफी आणि अनुदानाचे पैसे कसे मिळवायचे?'
-        },
-        {
-          tag: 'नमो शेतकरी योजना',
-          query: 'नमो शेतकरी महासन्मान निधीचे पैसे कोणले भेटतात अन् काय कागद लागतात?',
-          meaning: 'नमो शेतकरी योजनेची पात्रता व आवश्यक कागदपत्रे.'
-        },
-        {
-          tag: 'पीक विमा चौकशी',
-          query: 'अतिवृष्टीने सोयाबीन आणि कापूस नासून गेला, विमा कंपनीले तक्रार कशी द्यायची?',
-          meaning: '१ रुपयात पीक विमा नुकसानीची ७२ तासांत माहिती कशी द्यावी?'
-        }
+        { tag: 'वऱ्हाडी बोली', query: VARHADI_LOAN_QUERY, meaning: 'कर्जमाफी आणि अनुदानाचे पैसे कसे मिळवायचे?' },
+        { tag: 'नमो शेतकरी योजना', query: 'नमो शेतकरी महासन्मान निधीचे पैसे कोणले भेटतात अन् काय कागद लागतात?', meaning: 'नमो शेतकरी योजनेची पात्रता व आवश्यक कागदपत्रे.' },
+        { tag: 'पीक विमा', query: 'अतिवृष्टीने सोयाबीन आणि कापूस नासून गेला, विमा कंपनीले तक्रार कशी द्यायची?', meaning: 'अतिवृष्टीनं पिकाचं नुकसान झालं तर पीक विम्याची भरपाई कशी मागायची?' }
       ]
     },
     voice: {
-      title: 'बोलून प्रश्न इचारा (Voice Assistant)',
+      title: 'बोलून प्रश्न इचारा',
       subtitle: 'आपल्या वऱ्हाडी बोलीत बोला, माईक दाबा अन् इचारा.',
-      recordStart: 'माईक सुरू करा (Record)',
-      recordStop: 'थांबवा (Stop)',
+      recordStart: 'बोला',
+      recordStop: 'थांबवा',
       recordingTime: 'बोलण्याची वेळ',
-      uploadAudio: 'रेकॉर्डिंग फाईल अपलोड करा (WAV, MP3, WebM)',
+      recordingLength: 'रेकॉर्डिंगची लांबी',
+      uploadAudio: 'रेकॉर्डिंग फाईल निवडा',
       processing: 'तुमचा आवाज ऐकणे चालू हाय...',
-      previewTitle: 'तुम्ही काय बोलले अन् बोलीभाषा',
-      detectedDialect: 'ओळखलेली बोलीभाषा',
-      originalTranscript: 'तुम्ही बोललेला मूळ आवाज (Original Spoken)',
-      normalizedQuery: 'शासकीय शोध रूप (Normalized Query)',
-      editTranscript: 'बदला / दुरुस्त करा (Edit)',
-      saveEdit: 'दुरुस्ती जतन करा',
-      cancelEdit: 'रद्द करा',
+      previewTitle: 'तुम्ही इचारलेला प्रश्न',
+      yourRecording: 'तुमचं रेकॉर्डिंग',
+      editTranscript: 'हे बरोबर हाय का? चुकलं असन तर दुरुस्त करा',
+      understoodAs: 'प्रमाण मराठीत तुमचा प्रश्न',
+      saveEdit: 'पुन्हा तपासा',
       submitToChat: 'या प्रश्नाचे उत्तर काढा',
-      confidence: 'विश्वासार्हता',
-      duration: 'लागलेली वेळ',
-      noAudioRecorded: 'आधी माईक दाबून बोला किंवा फाईल अपलोड करा.',
-      micPermissionError: 'मायक्रोफोन चालू करायची परवानगी द्यावी लागेल.',
-      dialectNote: 'तुम्ही बोललेला शब्द तसाच राहतो, तो बदलला जात नाही.'
+      uncertainNotice: 'तुमचा आवाज नीट ऐकू आला नसन. खालचं लिहिलेलं तपासा, नाहीतर पुन्हा बोला.',
+      noAudioRecorded: 'आवाज ओळखता आला नाही. पुन्हा बोला नाहीतर प्रश्न टाइप करा.',
+      requestFailed: 'आत्ता तुमचं रेकॉर्डिंग तपासता आलं नाही. थोड्या वेळानं पुन्हा प्रयत्न करा नाहीतर प्रश्न टाइप करा.',
+      micPermissionError: 'मायक्रोफोन चालू करायची परवानगी द्यावी लागेल.'
     },
     chat: {
-      title: 'योजनांची थेट माहिती (Grounded Chat)',
-      subtitle: 'सरकारी जीआर तपासून दिलेल्या पानांच्या पुराव्यासह अचूक उत्तर.',
+      title: 'योजनांची माहिती इचारा',
+      subtitle: 'सरकारी जीआर तपासून दिलेल्या पानांच्या पुराव्यासह उत्तर.',
       inputPlaceholder: 'तुमचा प्रश्न इथं लिहा (उदा. मले २ लाख कर्जमाफी कशी भेटन?)...',
       sendButton: 'पाठवा',
       thinking: 'सरकारी कागदपत्रे तपासून उत्तर तयार करत हाय...',
-      sourcesTitle: 'पुरावा: सरकारी कागदपत्रे अन् पान नंबर (Citations)',
-      page: 'पान क्र.',
-      similarity: 'जुळणी प्रमाण',
-      viewEnglish: 'इंग्रजीत पहा (English)',
-      hideEnglish: 'इंग्रजी बंद करा',
+      sourcesTitle: 'पुरावा: सरकारी कागदपत्रे अन् पान नंबर',
+      page: 'पान',
+      viewEnglish: 'इंग्रजीत पहा',
       translating: 'इंग्रजीत भाषांतर होत हाय...',
-      audioListen: 'मराठीत आवाज ऐका (Audio)',
-      audioPlaying: 'आवाज चालू हाय...',
+      englishLabel: 'इंग्रजी भाषांतर',
+      audioListen: 'मराठीत उत्तर ऐका',
       dialectBadge: 'बोलीभाषा',
-      normalizedBadge: 'प्रमाण रूप',
       ratePrompt: 'हे उत्तर बरोबर हाय का?',
       rateCorrectionPlaceholder: 'काही चूक वाटल्यास इथं लिहा...',
       submitFeedback: 'अभिप्राय द्या',
-      feedbackSuccess: 'धन्यवाद! तुमचा अभिप्राय नोंदवून घेतला हाय.',
-      emptyChatPrompt: 'कोणताही प्रश्न इचारा किंवा वरील उदाहरणांवर टिचकी मारा.'
+      feedbackThanks: 'धन्यवाद!',
+      emptyChatPrompt: 'तुमचा प्रश्न खाली लिहा: वऱ्हाडी, मराठी, हिंदी नाहीतर इंग्रजीत.',
+      errorAnswer: 'माफ करा, आत्ता उत्तर देता आलं नाही. थोड्या वेळानं पुन्हा इचारा.',
+      actionFailed: 'काहीतरी चुकलं. पुन्हा प्रयत्न करा.',
+      checkSource: 'निर्णय घेण्याआधी मूळ पान एकदा पाहा.'
     },
-    kb: {
-      title: 'सरकारी जीआर कागदपत्रे (Knowledge Base)',
-      subtitle: 'सरकारी शासन निर्णय (PDF) अपलोड करा, सिस्टिम थेट वाचून इंडेक्स करेल.',
-      uploadHeader: 'नवीन जीआर (PDF) टाका',
-      fileLabel: 'PDF फाईल निवडा',
-      titleLabel: 'कागदपत्राचे नाव',
-      authorityLabel: 'विभाग',
-      uploadBtn: 'कागदपत्र जोडा व इंडेक्स करा',
-      uploading: 'कागदपत्र वाचणे चालू हाय...',
-      statsTotalDocs: 'एकूण कागदपत्रे',
-      statsTotalChunks: 'तपासलेले परिच्छेद',
-      indexedListHeader: 'सिस्टिममध्ये जमा असलेले कागदपत्रे',
-      docDelete: 'काढून टाका',
-      rebuildBtn: 'पुन्हा तपासा',
-      rebuilding: 'पुन्हा तपासणे चालू हाय...',
-      emptyList: 'अजून एकही कागदपत्र जोडलेलं नाही.'
+    docs: {
+      title: 'सरकारी कागदपत्रे',
+      subtitle: 'सहाय्यक या सरकारी कागदपत्रांवरूनच उत्तर देते. प्रत्येकाची मूळ प्रत सरकारच्या वेबसाईटवर पाहता येते.',
+      countLabel: 'कागदपत्रे',
+      grNumber: 'शासन निर्णय क्र.',
+      issued: 'तारीख',
+      openOfficial: 'मूळ प्रत उघडा',
+      superseded: 'नव्या जीआरनं बदललेलं',
+      emptyList: 'अजून एकही कागदपत्र नाही.',
+      loadError: 'कागदपत्रांची यादी आणता आली नाही. पुन्हा प्रयत्न करा.'
     },
-    eval: {
-      title: 'अचूकता तपासणी डॅशबोर्ड (Evaluation Dashboard)',
-      subtitle: 'आपल्या वऱ्हाडी आणि प्रमाण मराठीतील खरीखुरी मोजलेली अचूकता.',
-      btnRunAsr: 'ASR चाचणी घ्या',
-      btnRunRag: 'RAG चाचणी घ्या',
-      runningAsr: 'ASR तपासणी चालू हाय...',
-      runningRag: '३० प्रश्नांची तपासणी चालू...',
-      asrSectionTitle: 'आवाज ओळख चाचणी (WER व CER)',
-      modelSelectLabel: 'मॉडेल निवडा:',
-      werLabel: 'शब्दांमधील चूक (WER)',
-      werDesc: 'कमी चूक म्हणजे जास्त चांगलं',
-      cerLabel: 'अक्षरांमधील चूक (CER)',
-      cerDesc: 'अक्षरांचे अचूक प्रमाण',
-      exactMatchLabel: '१००% तंतोतंत जुळणी',
-      exactMatchDesc: 'जसेच्या तसे बरोबर वाक्ये',
-      latencyLabel: 'सरासरी वेळ',
-      latencyDesc: 'एका वाक्याला लागणारा वेळ',
-      categoryBreakdownTitle: 'बोलीनुसार अचूकता विश्लेषण',
-      samplesCount: 'चाचणी वाक्ये',
-      ragSectionTitle: 'सरकारी माहिती शोध अचूकता (RAG 30 Benchmark)',
-      recallLabel: 'माहिती सापडणे (Recall)',
-      recallDesc: 'अपेक्षित पुरावा सापडण्याचे प्रमाण',
-      precisionLabel: 'योग्य परिच्छेद (Precision)',
-      precisionDesc: 'शोधलेल्या भागांची सुसंगतता',
-      mrrLabel: 'पहिले योग्य पान (MRR)',
-      mrrDesc: 'पहिल्या प्रयत्नात योग्य संदर्भ मिळणे',
-      suppressionLabel: 'खोट्या गोष्टी रोखणे',
-      suppressionDesc: 'माहिती नसताना खोटं न बोलण्याचे प्रमाण',
-      noDataTitle: 'अजून चाचणी घेतलेली नाही',
-      noDataDesc: 'तपासणी करण्यासाठी वरील बटण दाबा.'
+    dialects: {
+      standard: 'प्रमाण मराठी',
+      varhadi: 'वऱ्हाडी (विदर्भ)'
     },
     footer: {
-      text: '© २०२६ BharatLangTech AI — विदर्भातील शेतकरी बांधवांसाठी आपली वऱ्हाडी बोलीभाषा सहाय्यक. सर्व काही Apple Silicon (M2) वर ऑफलाइन चालते.'
+      text: '© २०२६ BharatLangTech AI — विदर्भातील शेतकरी बांधवांसाठी आपल्या वऱ्हाडी बोलीतला सहाय्यक. उत्तर सरकारी कागदपत्रांवरून; मूळ कागद एकदा तपासून घ्या.'
     }
   },
 
   // 3. Hindi (हिंदी)
   hi: {
     nav: {
-      home: 'गृह (Home)',
+      home: 'मुख्य पृष्ठ',
       voice: 'आवाज़ सहायक',
-      chat: 'संवाद (Chat)',
-      kb: 'ज्ञान भंडार',
-      eval: 'मूल्यांकन',
-      dialectBadge: 'बोली-जागरूक',
-      tagline: 'स्थानीय भाषा व बोलीभाषा बहुभाषी सहायक',
-      appleM2: 'Apple M2 (MPS)'
+      chat: 'संवाद',
+      docs: 'सरकारी दस्तावेज़',
+      manageDocs: 'दस्तावेज़ प्रबंधन',
+      qualityChecks: 'गुणवत्ता जाँच',
+      dialectBadge: 'बोलियाँ समझने वाला',
+      tagline: 'स्थानीय भाषा व बोलीभाषा बहुभाषी सहायक'
+    },
+    status: {
+      checking: 'सेवा की जाँच हो रही है…',
+      available: 'सेवा उपलब्ध',
+      unavailable: 'सेवा अस्थायी रूप से अनुपलब्ध',
+      unavailableHint: 'अभी उत्तर देने में समस्या आ रही है, इसलिए उत्तर अधूरे हो सकते हैं। कृपया थोड़ी देर बाद फिर प्रयास करें।'
     },
     home: {
-      badge: 'ओपन-सोर्स स्थानीय बुद्धिमत्ता • 100% लोकल होस्टेड',
+      badge: 'आधिकारिक सरकारी दस्तावेज़ों से, पृष्ठ संख्या सहित उत्तर',
       title: 'BharatLangTech AI',
       subtitle: 'स्थानीय भाषा और बोलियों को समझने वाला बहुभाषी कृषि व सरकारी योजना सहायक',
-      description: 'विदर्भ की वऱ्हाडी और मानक मराठी बोलने वाले नागरिकों के लिए विशेष वॉयस इंटेलिजेंस प्लेटफ़ॉर्म। आधिकारिक सरकारी प्रस्तावों (GR) पर आधारित साक्ष्य-सत्यापित उत्तर।',
-      btnVoice: 'बोलकर पूछें (Voice Assistant)',
-      btnChat: 'टाइप करके पूछें (Text Chat)',
-      btnKb: 'सरकारी दस्तावेज़ (PDF Knowledge)',
-      statusAsrTitle: 'ध्वनि पहचान (ASR)',
-      statusAsrDesc: 'Int8 CTranslate2 (Apple Silicon CPU) • मराठी व वऱ्हाडी ध्वनि पहचान',
-      statusDialectTitle: 'बोलीभाषा व अनुवाद',
-      statusDialectDesc: 'मूल बोली को सुरक्षित रखकर मानक मराठी में सामान्यीकरण • NLLB-200',
-      statusLlmTitle: 'स्थानीय भाषा मॉडल (LLM)',
-      statusLlmDesc: 'Ollama Qwen2.5 1.5B (Apple Metal) • शून्य क्लाउड लागत और पूर्ण गोपनीयता',
-      statusRagTitle: 'ज्ञान भंडार (RAG)',
-      statusRagDesc: 'Multilingual E5 + FAISS • PyMuPDF और देवनागरी Tesseract OCR',
-      demoTitle: 'विदर्भ के किसानों के प्रात्यक्षिक प्रश्न (Farmer Demonstration Queries)',
-      demoSubtitle: 'नीचे दिए गए किसी भी प्रश्न पर क्लिक करके वऱ्हाडी या मराठी में साक्ष्य-आधारित उत्तर देखें:',
+      description: 'विदर्भ की वऱ्हाडी और मानक मराठी बोलने वाले किसानों के लिए। नमो शेतकरी, पीएम-किसान, फसल बीमा और कर्जमुक्ति योजनाओं के बारे में पूछें; उत्तर महाराष्ट्र सरकार के आधिकारिक शासन निर्णयों पर आधारित होते हैं।',
+      btnVoice: 'बोलकर पूछें',
+      btnChat: 'टाइप करके पूछें',
+      btnDocs: 'सरकारी दस्तावेज़ देखें',
+      howTitle: 'यह कैसे काम करता है',
+      steps: [
+        {
+          title: 'बोलकर या टाइप करके पूछें',
+          desc: 'मराठी, वऱ्हाडी, हिंदी या अंग्रेज़ी में पूछें। बोला गया प्रश्न पहले लिखा हुआ दिखता है; ज़रूरत हो तो उसे सुधारें।'
+        },
+        {
+          title: 'आधिकारिक दस्तावेज़ों से उत्तर',
+          desc: 'उत्तर सरकारी योजनाओं के आधिकारिक दस्तावेज़ों पर आधारित होता है, साथ में दस्तावेज़ का नाम और पृष्ठ संख्या दी जाती है।'
+        },
+        {
+          title: 'मूल दस्तावेज़ जाँचें',
+          desc: 'यह सहायक गलती कर सकता है। आवेदन या निर्णय से पहले दिया गया पृष्ठ जाँचें, या नज़दीकी कृषि कार्यालय से पुष्टि करें।'
+        }
+      ],
+      demoTitle: 'उदाहरण प्रश्न',
+      demoSubtitle: 'उत्तर देखने के लिए नीचे किसी भी प्रश्न पर क्लिक करें:',
       askButton: 'यह प्रश्न पूछें',
       sampleQueries: [
-        {
-          tag: 'वऱ्हाडी बोली (Varhadi Vidarbha)',
-          query: 'मले शेतीसाठी कर्जमाफी आणि शासकीय अनुदान कसं भेटन ते सांगा.',
-          meaning: 'किसानों के लिए ऋण माफ़ी और सरकारी अनुदान का लाभ कैसे प्राप्त करें?'
-        },
-        {
-          tag: 'मानक मराठी (Standard Marathi)',
-          query: 'नमो शेतकरी महासन्मान निधी योजनेसाठी पात्रता निकष आणि आवश्यक कागदपत्रे कोणती आहेत?',
-          meaning: 'नमो शेतकरी सन्मान निधि योजना के पात्रता मानदंड और आवश्यक दस्तावेज़।'
-        },
-        {
-          tag: 'फसल बीमा पूछताछ (Crop Insurance)',
-          query: 'अतिवृष्टीमुळे कापूस आणि सोयाबीन पिकाचे नुकसान झाल्यास नुकसान भरपाई कशी मागता येईल?',
-          meaning: '१ रुपये फसल बीमा योजना के अंतर्गत ७२ घंटों में क्षति की पूर्वसूचना कैसे दें?'
-        }
+        { tag: 'वऱ्हाडी बोली', query: VARHADI_LOAN_QUERY, meaning: 'किसानों के लिए ऋण माफ़ी और सरकारी अनुदान का लाभ कैसे प्राप्त करें?' },
+        { tag: 'मानक मराठी', query: NAMO_QUERY, meaning: 'नमो शेतकरी महासन्मान निधि योजना के पात्रता मानदंड और आवश्यक दस्तावेज़।' },
+        { tag: 'फसल बीमा', query: CROP_QUERY, meaning: 'भारी बारिश से कपास और सोयाबीन की फसल खराब होने पर फसल बीमा मुआवज़ा कैसे माँगें?' }
       ]
     },
     voice: {
-      title: 'आवाज़ सहायक (Voice Scheme Assistant)',
-      subtitle: 'माइक्रोफ़ोन का उपयोग करके वऱ्हाडी या मराठी में बोलें, या ऑडियो फ़ाइल अपलोड करें।',
-      recordStart: 'माइक चालू करें (Record)',
-      recordStop: 'रोकें (Stop)',
+      title: 'आवाज़ सहायक',
+      subtitle: 'माइक दबाकर वऱ्हाडी या मराठी में बोलें, या रिकॉर्ड की हुई ऑडियो फ़ाइल चुनें।',
+      recordStart: 'बोलें',
+      recordStop: 'रोकें',
       recordingTime: 'रिकॉर्डिंग समय',
-      uploadAudio: 'ऑडियो फ़ाइल अपलोड करें (WAV, MP3, WebM)',
-      processing: 'ध्वनि पहचान प्रक्रिया जारी है...',
-      previewTitle: 'पहचाना गया पाठ और बोली विश्लेषण',
-      detectedDialect: 'पहचानी गई बोलीभाषा',
-      originalTranscript: 'मूल बोला गया पाठ (Original Spoken)',
-      normalizedQuery: 'मानकीकृत प्रश्न (Normalized for RAG)',
-      editTranscript: 'संपादित करें (Edit)',
-      saveEdit: 'सुधार सहेजें और पुनः जांचें',
-      cancelEdit: 'रद्द करें',
-      submitToChat: 'इस प्रश्न का उत्तर पाएं',
-      confidence: 'सटीकता विश्वास (Confidence)',
-      duration: 'प्रक्रिया समय',
-      noAudioRecorded: 'कृपया पहले बोलें या ऑडियो फ़ाइल अपलोड करें।',
-      micPermissionError: 'माइक्रोफ़ोन अनुमति अस्वीकृत या माइक्रोफ़ोन अनुपलब्ध।',
-      dialectNote: 'आपका मूल बोला गया पाठ सुरक्षित रखा जाता है और उसे बदला नहीं जाता।'
+      recordingLength: 'रिकॉर्डिंग की लंबाई',
+      uploadAudio: 'ऑडियो फ़ाइल चुनें',
+      processing: 'आपकी आवाज़ सुनी जा रही है...',
+      previewTitle: 'आपका पूछा गया प्रश्न',
+      yourRecording: 'आपकी रिकॉर्डिंग',
+      editTranscript: 'क्या यह सही है? ज़रूरत हो तो सुधारें',
+      understoodAs: 'मानक मराठी में आपका प्रश्न',
+      saveEdit: 'फिर से जाँचें',
+      submitToChat: 'इस प्रश्न का उत्तर पाएँ',
+      uncertainNotice: 'शायद आपकी आवाज़ साफ़ सुनाई नहीं दी। नीचे लिखा पाठ जाँचकर सुधारें, या फिर से बोलें।',
+      noAudioRecorded: 'आवाज़ पहचानी नहीं जा सकी। कृपया फिर से बोलें या प्रश्न टाइप करें।',
+      requestFailed: 'अभी आपकी रिकॉर्डिंग जाँची नहीं जा सकी। कृपया थोड़ी देर बाद फिर प्रयास करें या प्रश्न टाइप करें।',
+      micPermissionError: 'माइक्रोफ़ोन अनुमति अस्वीकृत या माइक्रोफ़ोन अनुपलब्ध।'
     },
     chat: {
-      title: 'सरकारी योजना संवाद (Grounded Chat)',
-      subtitle: 'आधिकारिक सरकारी आदेशों के आधार पर साक्ष्य-सत्यापित उत्तर, मूल दस्तावेज़ और पृष्ठ संख्या सहित।',
+      title: 'सरकारी योजनाओं के बारे में पूछें',
+      subtitle: 'उत्तर आधिकारिक सरकारी दस्तावेज़ों पर आधारित, दस्तावेज़ के नाम और पृष्ठ संख्या सहित।',
       inputPlaceholder: 'अपना प्रश्न यहाँ टाइप करें (उदा. ऋण माफ़ी की पात्रता क्या है?)...',
       sendButton: 'भेजें',
-      thinking: 'सरकारी दस्तावेज़ों की जांच कर सटीक उत्तर तैयार किया जा रहा है...',
-      sourcesTitle: 'संदर्भित सरकारी दस्तावेज़ और पृष्ठ संख्या (Verified Citations)',
-      page: 'पृष्ठ सं.',
-      similarity: 'सटीकता स्कोर',
-      viewEnglish: 'अंग्रेजी अनुवाद देखें (English Translation)',
-      hideEnglish: 'अंग्रेजी छिपाएं',
-      translating: 'अंग्रेजी में अनुवाद हो रहा है...',
-      audioListen: 'मराठी में उत्तर सुनें (Audio)',
-      audioPlaying: 'ऑडियो चल रहा है...',
-      dialectBadge: 'बोलीभाषा',
-      normalizedBadge: 'मानक रूप',
+      thinking: 'सरकारी दस्तावेज़ों की जाँच कर उत्तर तैयार किया जा रहा है...',
+      sourcesTitle: 'संदर्भ: सरकारी दस्तावेज़ और पृष्ठ संख्या',
+      page: 'पृष्ठ',
+      viewEnglish: 'अंग्रेज़ी में देखें',
+      translating: 'अंग्रेज़ी में अनुवाद हो रहा है...',
+      englishLabel: 'अंग्रेज़ी अनुवाद',
+      audioListen: 'मराठी में उत्तर सुनें',
+      dialectBadge: 'बोली',
       ratePrompt: 'क्या यह उत्तर उपयोगी और सटीक था?',
       rateCorrectionPlaceholder: 'यदि कोई त्रुटि या सुधार हो तो यहाँ लिखें...',
-      submitFeedback: 'प्रतिक्रिया दर्ज करें',
-      feedbackSuccess: 'धन्यवाद! आपकी प्रतिक्रिया समीक्षा के लिए दर्ज कर ली गई है।',
-      emptyChatPrompt: 'कोई भी प्रश्न पूछें या ऊपर दिए गए उदाहरणों में से चुनें।'
+      submitFeedback: 'प्रतिक्रिया भेजें',
+      feedbackThanks: 'धन्यवाद!',
+      emptyChatPrompt: 'अपना प्रश्न नीचे मराठी, वऱ्हाडी, हिंदी या अंग्रेज़ी में लिखें।',
+      errorAnswer: 'क्षमा करें, अभी उत्तर नहीं दिया जा सका। कृपया थोड़ी देर बाद फिर प्रयास करें।',
+      actionFailed: 'कुछ गड़बड़ हो गई। कृपया फिर प्रयास करें।',
+      checkSource: 'निर्णय लेने से पहले दिया गया मूल पृष्ठ जाँचें।'
     },
-    kb: {
-      title: 'सरकारी दस्तावेज़ ज्ञान भंडार (Knowledge Base)',
-      subtitle: 'महाराष्ट्र शासन के आधिकारिक आदेश (GR) अपलोड करें। PyMuPDF और Tesseract OCR द्वारा अनुक्रमण।',
-      uploadHeader: 'नया सरकारी आदेश (PDF) अपलोड करें',
-      fileLabel: 'PDF फ़ाइल चुनें',
-      titleLabel: 'योजना का नाम / दस्तावेज़ शीर्षक',
-      authorityLabel: 'जारीकर्ता विभाग / प्राधिकरण',
-      uploadBtn: 'दस्तावेज़ प्रोसेस और इंडेक्स करें',
-      uploading: 'दस्तावेज़ स्कैनिंग और OCR प्रक्रिया जारी है...',
-      statsTotalDocs: 'कुल दस्तावेज़',
-      statsTotalChunks: 'इंडेक्स किए गए पैराग्राफ',
-      indexedListHeader: 'उपलब्ध सरकारी दस्तावेज़',
-      docDelete: 'हटाएं',
-      rebuildBtn: 'इंडेक्स पुनः बनाएं',
-      rebuilding: 'पुनः इंडेक्सिंग जारी है...',
-      emptyList: 'अभी तक कोई दस्तावेज़ अपलोड नहीं किया गया है।'
+    docs: {
+      title: 'सरकारी दस्तावेज़',
+      subtitle: 'सहायक नीचे दिए गए आधिकारिक दस्तावेज़ों से उत्तर देता है। हर दस्तावेज़ की मूल प्रति सरकारी वेबसाइट पर देखी जा सकती है।',
+      countLabel: 'दस्तावेज़',
+      grNumber: 'शासन निर्णय क्र.',
+      issued: 'दिनांक',
+      openOfficial: 'मूल प्रति खोलें',
+      superseded: 'नए आदेश द्वारा बदला गया',
+      emptyList: 'अभी कोई दस्तावेज़ उपलब्ध नहीं है।',
+      loadError: 'दस्तावेज़ों की सूची नहीं मिल सकी। कृपया फिर प्रयास करें।'
     },
-    eval: {
-      title: 'मूल्यांकन और सटीकता डैशबोर्ड (Evaluation Dashboard)',
-      subtitle: 'मानव-सत्यापित संदर्भ सेट पर आधारित वास्तविक सटीकता आंकड़े (Zero Fabricated Metrics).',
-      btnRunAsr: 'ASR बेंचमार्क चलाएं',
-      btnRunRag: 'RAG बेंचमार्क चलाएं',
-      runningAsr: 'ASR परीक्षण जारी...',
-      runningRag: '30 प्रश्नों की जांच जारी...',
-      asrSectionTitle: 'ध्वनि पहचान मूल्यांकन (Speech Recognition - WER & CER)',
-      modelSelectLabel: 'मॉडल चुनें:',
-      werLabel: 'Word Error Rate (WER)',
-      werDesc: 'शब्द स्तर पर त्रुटि अनुपात (कम होना बेहतर)',
-      cerLabel: 'Character Error Rate (CER)',
-      cerDesc: 'अक्षर स्तर पर त्रुटि अनुपात',
-      exactMatchLabel: 'सटीक मिलान (Exact Match)',
-      exactMatchDesc: '100% सटीक वाक्य',
-      latencyLabel: 'औसत समय (Latency)',
-      latencyDesc: 'प्रति वाक्य प्रसंस्करण समय',
-      categoryBreakdownTitle: 'बोली-विशिष्ट सटीकता विश्लेषण',
-      samplesCount: 'परीक्षण वाक्य',
-      ragSectionTitle: 'सरकारी योजना खोज सटीकता (RAG 30 Question Benchmark)',
-      recallLabel: 'Recall @ Top 4',
-      recallDesc: 'अपेक्षित जानकारी मिलने की दर',
-      precisionLabel: 'Precision @ Top 4',
-      precisionDesc: 'खोजे गए अंशों की प्रासंगिकता',
-      mrrLabel: 'Mean Reciprocal Rank (MRR)',
-      mrrDesc: 'प्रथम प्रासंगिक उद्धरण की स्थिति',
-      suppressionLabel: 'अप्रासंगिक प्रश्नों की रोकथाम',
-      suppressionDesc: 'काल्पनिक उत्तर न देने की दर',
-      noDataTitle: 'कोई परीक्षण डेटा उपलब्ध नहीं है',
-      noDataDesc: 'वास्तविक मॉडल परीक्षण के लिए ऊपर "बेंचमार्क चलाएं" बटन दबाएं।'
+    dialects: {
+      standard: 'मानक मराठी',
+      varhadi: 'वऱ्हाडी (विदर्भ)'
     },
     footer: {
-      text: '© 2026 BharatLangTech AI — भारतीय नागरिकों के लिए बोली-जागरूक बहुभाषी वॉयस प्लेटफ़ॉर्म। सभी मॉडल Apple Silicon (M2) पर ऑफ़लाइन चलते हैं।'
+      text: '© 2026 BharatLangTech AI — सरकारी योजनाओं के लिए बोलियाँ समझने वाला मराठी सहायक। उत्तर आधिकारिक दस्तावेज़ों पर आधारित हैं; कृपया संदर्भित मूल दस्तावेज़ जाँचें।'
     }
   },
 
@@ -576,143 +455,109 @@ export const translations: Record<string, TranslationDictionary> = {
       home: 'Home',
       voice: 'Voice Assistant',
       chat: 'Text Chat',
-      kb: 'Knowledge Base',
-      eval: 'Evaluation',
+      docs: 'Government Documents',
+      manageDocs: 'Manage documents',
+      qualityChecks: 'Quality checks',
       dialectBadge: 'Dialect-Aware',
-      tagline: 'Multilingual Voice Intelligence for Regional Dialects',
-      appleM2: 'Apple M2 (MPS)'
+      tagline: 'Marathi and Varhadi assistant for farmer schemes'
+    },
+    status: {
+      checking: 'Checking service…',
+      available: 'Service available',
+      unavailable: 'Service temporarily unavailable',
+      unavailableHint: 'The assistant is having trouble right now, so answers may be incomplete. Please try again in a little while.'
     },
     home: {
-      badge: 'Open-Source Local Intelligence • 100% Locally Hosted',
+      badge: 'Answers from official government documents, with page numbers',
       title: 'BharatLangTech AI',
-      subtitle: 'Multilingual Agricultural & Government Scheme Intelligence Platform',
-      description: 'Dialect-aware voice intelligence platform tailored for Marathi and Varhadi (Vidarbha) speaking citizens. Grounded strictly in verified Maharashtra government resolutions and agricultural policies.',
-      btnVoice: 'Start Voice Assistant',
-      btnChat: 'Start Text Chat',
-      btnKb: 'Government Documents (PDF)',
-      statusAsrTitle: 'Speech Recognition (ASR)',
-      statusAsrDesc: 'Int8 CTranslate2 (Apple Silicon CPU) • Accurate Marathi & Varhadi ASR',
-      statusDialectTitle: 'Dialect & Translation',
-      statusDialectDesc: 'Non-destructive Varhadi normalization • NLLB-200 / IndicTrans2',
-      statusLlmTitle: 'Local Language Model (LLM)',
-      statusLlmDesc: 'Ollama Qwen2.5 1.5B (Apple Metal) • Zero Cloud Costs & Complete Privacy',
-      statusRagTitle: 'Knowledge Base (RAG)',
-      statusRagDesc: 'Multilingual E5 + FAISS • PyMuPDF & Devanagari Tesseract OCR',
-      demoTitle: 'Farmer Demonstration Queries (Vidarbha Region)',
-      demoSubtitle: 'Click any question below to test evidence-grounded answers in Varhadi or Marathi:',
+      subtitle: 'A farm and government scheme assistant that understands Marathi and Varhadi',
+      description: 'For farmers in Vidarbha who speak Varhadi or standard Marathi. Ask about Namo Shetkari, PM-KISAN, crop insurance and the loan waiver; answers are based on official Maharashtra government resolutions.',
+      btnVoice: 'Ask by voice',
+      btnChat: 'Type a question',
+      btnDocs: 'See the documents',
+      howTitle: 'How it works',
+      steps: [
+        {
+          title: 'Ask by voice or by typing',
+          desc: 'Ask in Marathi, Varhadi, Hindi or English. A spoken question is shown as text first, so you can check and correct it.'
+        },
+        {
+          title: 'Answers from official documents',
+          desc: 'Answers are based on official government scheme documents and name the document and page they come from.'
+        },
+        {
+          title: 'Check the original',
+          desc: 'This assistant can make mistakes. Before you apply or decide, check the cited page, or confirm at your nearest agriculture office.'
+        }
+      ],
+      demoTitle: 'Example questions',
+      demoSubtitle: 'Click a question below to see the answer:',
       askButton: 'Ask this question',
       sampleQueries: [
-        {
-          tag: 'Varhadi Dialect (Vidarbha)',
-          query: 'मले शेतीसाठी कर्जमाफी आणि शासकीय अनुदान कसं भेटन ते सांगा.',
-          meaning: 'How can I get farmer loan waiver and government agricultural subsidies?'
-        },
-        {
-          tag: 'Standard Marathi',
-          query: 'नमो शेतकरी महासन्मान निधी योजनेसाठी पात्रता निकष आणि आवश्यक कागदपत्रे कोणती आहेत?',
-          meaning: 'What are the eligibility criteria and documents for Namo Shetkari Yojana?'
-        },
-        {
-          tag: 'Crop Insurance Inquiry',
-          query: 'अतिवृष्टीमुळे कापूस आणि सोयाबीन पिकाचे नुकसान झाल्यास नुकसान भरपाई कशी मागता येईल?',
-          meaning: 'How to claim crop insurance compensation for heavy rain damage to cotton and soybean?'
-        }
+        { tag: 'Varhadi (Vidarbha)', query: VARHADI_LOAN_QUERY, meaning: 'How can I get the farm loan waiver and government subsidies?' },
+        { tag: 'Standard Marathi', query: NAMO_QUERY, meaning: 'Who is eligible for Namo Shetkari Mahasanman Nidhi, and which documents are needed?' },
+        { tag: 'Crop insurance', query: CROP_QUERY, meaning: 'How do I claim crop insurance for heavy-rain damage to cotton and soybean?' }
       ]
     },
     voice: {
-      title: 'Voice Scheme Assistant',
-      subtitle: 'Speak in Varhadi or Marathi using your microphone, or upload a recorded audio file.',
-      recordStart: 'Record Voice',
-      recordStop: 'Stop Recording',
-      recordingTime: 'Recording Time',
-      uploadAudio: 'Upload Audio File (WAV, MP3, WebM)',
-      processing: 'Processing speech & detecting dialect...',
-      previewTitle: 'Recognized Speech & Dialect Analysis',
-      detectedDialect: 'Detected Dialect',
-      originalTranscript: 'Original Spoken Transcript (Preserved)',
-      normalizedQuery: 'Standardized Marathi Query (Normalized for RAG)',
-      editTranscript: 'Edit Transcript',
-      saveEdit: 'Save & Reprocess',
-      cancelEdit: 'Cancel',
-      submitToChat: 'Ask Scheme Assistant with this Query',
-      confidence: 'Recognition Confidence',
-      duration: 'Processing Duration',
-      noAudioRecorded: 'Please record audio or upload an audio file first.',
-      micPermissionError: 'Microphone access denied or unavailable in your browser.',
-      dialectNote: 'Your original spoken transcript is permanently preserved and never overwritten.'
+      title: 'Voice Assistant',
+      subtitle: 'Press the microphone and speak in Varhadi or Marathi, or choose a recorded audio file.',
+      recordStart: 'Speak',
+      recordStop: 'Stop',
+      recordingTime: 'Recording time',
+      recordingLength: 'Recording length',
+      uploadAudio: 'Choose an audio file',
+      processing: 'Listening to your recording...',
+      previewTitle: 'Your question',
+      yourRecording: 'Your recording',
+      editTranscript: 'Is this right? Correct it if needed',
+      understoodAs: 'Your question in standard Marathi',
+      saveEdit: 'Check again',
+      submitToChat: 'Get the answer',
+      uncertainNotice: 'We may not have heard you clearly. Check the text below and correct it, or record again.',
+      noAudioRecorded: 'Your voice could not be recognised. Please speak again or type your question.',
+      requestFailed: 'Your recording could not be checked right now. Please try again in a little while, or type your question.',
+      micPermissionError: 'Microphone access was denied, or no microphone is available.'
     },
     chat: {
-      title: 'Evidence-Grounded Scheme Chat',
-      subtitle: 'Accurate answers grounded directly in official Maharashtra Government Resolutions with exact page citations.',
-      inputPlaceholder: 'Type your question in Varhadi, Marathi, Hindi, or English (e.g. loan waiver eligibility)...',
+      title: 'Ask about government schemes',
+      subtitle: 'Answers are based on official government documents, with the document name and page number.',
+      inputPlaceholder: 'Type your question in Marathi, Varhadi, Hindi or English (e.g. who is eligible for the loan waiver?)...',
       sendButton: 'Send',
-      thinking: 'Searching government resolutions & generating grounded answer...',
-      sourcesTitle: 'Verified Source Documents & Page Citations',
+      thinking: 'Checking the government documents and preparing an answer...',
+      sourcesTitle: 'Sources: government documents and pages',
       page: 'Page',
-      similarity: 'Relevance Score',
-      viewEnglish: 'View English Translation',
-      hideEnglish: 'Hide English',
+      viewEnglish: 'View in English',
       translating: 'Translating to English...',
-      audioListen: 'Listen in Marathi (Audio)',
-      audioPlaying: 'Playing Audio...',
+      englishLabel: 'English translation',
+      audioListen: 'Listen to the answer in Marathi',
       dialectBadge: 'Dialect',
-      normalizedBadge: 'Normalized Form',
       ratePrompt: 'Was this answer helpful and accurate?',
       rateCorrectionPlaceholder: 'Suggest corrections or missing details here...',
-      submitFeedback: 'Submit Citizen Feedback',
-      feedbackSuccess: 'Thank you! Your feedback has been recorded for administrative review.',
-      emptyChatPrompt: 'Ask any question or pick one of the sample demonstration queries above.'
+      submitFeedback: 'Send feedback',
+      feedbackThanks: 'Thank you!',
+      emptyChatPrompt: 'Type your question below in Marathi, Varhadi, Hindi or English.',
+      errorAnswer: 'Sorry, we could not answer right now. Please try again in a little while.',
+      actionFailed: 'Something went wrong. Please try again.',
+      checkSource: 'Check the original page before you decide.'
     },
-    kb: {
-      title: 'Government Scheme Document Repository',
-      subtitle: 'Upload official Maharashtra Government Resolutions (GRs). Processed with PyMuPDF & Tesseract OCR.',
-      uploadHeader: 'Upload New Scheme Resolution (PDF)',
-      fileLabel: 'Select PDF Document',
-      titleLabel: 'Scheme / Document Title',
-      authorityLabel: 'Issuing Department / Authority',
-      uploadBtn: 'Process & Index Document',
-      uploading: 'Scanning PDF & Extracting Text (OCR)...',
-      statsTotalDocs: 'Total Documents',
-      statsTotalChunks: 'Indexed Semantic Chunks',
-      indexedListHeader: 'Indexed Government Resolutions in Knowledge Base',
-      docDelete: 'Delete',
-      rebuildBtn: 'Rebuild FAISS Index',
-      rebuilding: 'Rebuilding Vector Index...',
-      emptyList: 'No documents uploaded yet.'
+    docs: {
+      title: 'Government Documents',
+      subtitle: 'The assistant answers from the official documents below. The original of each one can be opened on the government website.',
+      countLabel: 'Documents',
+      grNumber: 'Government Resolution No.',
+      issued: 'Dated',
+      openOfficial: 'Open the original',
+      superseded: 'Replaced by a newer order',
+      emptyList: 'No documents are available right now.',
+      loadError: 'The document list could not be loaded. Please try again.'
     },
-    eval: {
-      title: 'Evaluation & Accuracy Benchmark Dashboard',
-      subtitle: 'Empirical accuracy metrics measured on human-verified Marathi and Varhadi reference datasets (No Fabricated Metrics).',
-      btnRunAsr: 'Run ASR Benchmark',
-      btnRunRag: 'Run RAG Benchmark',
-      runningAsr: 'Running Speech Benchmark...',
-      runningRag: 'Evaluating 30 Questions...',
-      asrSectionTitle: 'Speech Recognition Accuracy (WER & CER)',
-      modelSelectLabel: 'Select Model:',
-      werLabel: 'Word Error Rate (WER)',
-      werDesc: 'Word level error rate (Lower is better)',
-      cerLabel: 'Character Error Rate (CER)',
-      cerDesc: 'Character level error rate',
-      exactMatchLabel: 'Exact Match Rate',
-      exactMatchDesc: '100% exact transcript matches',
-      latencyLabel: 'Average Latency',
-      latencyDesc: 'Processing time per sentence',
-      categoryBreakdownTitle: 'Dialect-Specific Recognition Breakdown',
-      samplesCount: 'Test Sentences',
-      ragSectionTitle: 'Scheme Retrieval Accuracy (30-Question Benchmark)',
-      recallLabel: 'Recall @ Top 4',
-      recallDesc: 'Proportion of expected facts retrieved',
-      precisionLabel: 'Precision @ Top 4',
-      precisionDesc: 'Relevance of retrieved chunks',
-      mrrLabel: 'Mean Reciprocal Rank (MRR)',
-      mrrDesc: 'Position of first relevant citation',
-      suppressionLabel: 'Unsupported Claim Suppression',
-      suppressionDesc: 'Rejection of out-of-domain speculation',
-      noDataTitle: 'No Benchmark Data Available',
-      noDataDesc: 'Click "Run Benchmark" above to test the active models against verified ground truth.'
+    dialects: {
+      standard: 'Standard Marathi',
+      varhadi: 'Varhadi (Vidarbha)'
     },
     footer: {
-      text: '© 2026 BharatLangTech AI — Dialect-Aware Multilingual Voice Intelligence Platform for Indian Citizens. All inference runs 100% locally on Apple Silicon (M2). No proprietary cloud APIs.'
+      text: '© 2026 BharatLangTech AI — Dialect-aware Marathi assistant for government schemes. Answers come from official documents; always check the cited source.'
     }
   }
 };
@@ -720,4 +565,3 @@ export const translations: Record<string, TranslationDictionary> = {
 export const getTranslation = (lang: string): TranslationDictionary => {
   return translations[lang] || translations.mr;
 };
-

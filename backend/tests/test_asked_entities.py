@@ -118,7 +118,7 @@ def test_pipeline_looks_up_and_answers_the_asked_pair_of_a_narrative_question(mo
 
     monkeypatch.setattr(pipeline.faiss_retriever, "search_multi", lambda **_: [NASHIK, PMFBY_TEXT])
     monkeypatch.setattr(pipeline.faiss_retriever, "score_positions", score_positions)
-    monkeypatch.setattr(pipeline.ollama_client, "generate_rag_answer", fake_llm)
+    monkeypatch.setattr(pipeline.llm_client, "generate_rag_answer", fake_llm)
     monkeypatch.setattr(pipeline, "current_evidence_index", lambda: EvidenceIndex(LEXICON, CORPUS_SCOPE, TABLES))
 
     result = asyncio.run(pipeline.answer_government_scheme_query(

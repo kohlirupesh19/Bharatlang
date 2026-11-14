@@ -27,6 +27,8 @@ export interface ChatMessage {
   latency_ms?: number;
   created_at: string;
   is_uncertain?: boolean;
+  /** Set on the local placeholder shown when the request failed (no feedback/translate). */
+  is_error?: boolean;
 }
 
 export interface ASRSegment {
@@ -76,10 +78,34 @@ export interface KnowledgeBaseStats {
   documents: DocumentItem[];
 }
 
+/** One official document the knowledge base is built from (GET /api/documents/sources). */
+export interface CorpusSource {
+  doc_id: string;
+  title: string;
+  gr_number: string | null;
+  department: string | null;
+  issue_date: string | null;
+  language: string | null;
+  status: 'current' | 'superseded';
+  url: string | null;
+}
+
+export interface CorpusSourcesResponse {
+  total: number;
+  documents: CorpusSource[];
+}
+
+/** Citizen screens, plus the two operator screens shown only on `/#admin`. */
+export type ScreenId = 'home' | 'voice' | 'chat' | 'docs' | 'kbAdmin' | 'eval';
+
+/** What the citizen UI shows about the backend: plain words, no technical detail. */
+export type ServiceStatus = 'checking' | 'available' | 'unavailable';
+
 export interface SystemHealth {
   status: string;
   platform: string;
   hardware: {
+    cuda_available: boolean;
     mps_available: boolean;
     active_device: string;
     system_total_memory_gb: number;
@@ -87,8 +113,10 @@ export interface SystemHealth {
     memory_percent_used: number;
   };
   services: {
-    ollama_local_llm: {
+    llm: {
+      provider: 'ollama' | 'bedrock';
       configured_model: string;
+      endpoint: string;
       is_running: boolean;
     };
     asr_engine: {

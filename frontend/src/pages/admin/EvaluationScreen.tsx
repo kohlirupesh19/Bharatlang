@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, Play, Activity, Award } from 'lucide-react';
-import { apiClient } from '../services/api';
-import { getTranslation } from '../i18n/translations';
+import { apiClient } from '../../services/api';
+import { getAdminTranslation } from '../../i18n/adminTranslations';
 
 interface EvaluationScreenProps {
   selectedLanguage: string;
 }
 
 export const EvaluationScreen: React.FC<EvaluationScreenProps> = ({ selectedLanguage }) => {
-  const t = getTranslation(selectedLanguage);
+  const t = getAdminTranslation(selectedLanguage);
 
   const [evalData, setEvalData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);

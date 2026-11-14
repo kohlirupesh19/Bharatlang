@@ -2,6 +2,7 @@ import axios from 'axios';
 import {
   TranscriptionResponse,
   KnowledgeBaseStats,
+  CorpusSourcesResponse,
   SystemHealth
 } from '../types';
 
@@ -80,6 +81,12 @@ export const apiClient = {
   // Documents & RAG API
   async getDocuments(): Promise<KnowledgeBaseStats> {
     const res = await axios.get(`${API_BASE}/documents`);
+    return res.data;
+  },
+
+  /** Public list of the official documents the knowledge base is built from. */
+  async getCorpusSources(): Promise<CorpusSourcesResponse> {
+    const res = await axios.get(`${API_BASE}/documents/sources`);
     return res.data;
   },
 

@@ -9,14 +9,17 @@ init_db()
 client = TestClient(app)
 
 def test_health_check_scenario_6():
-    """Checks health endpoint, Apple Silicon hardware status, and services."""
+    """Checks health endpoint: real host platform, hardware status, and the active LLM provider."""
     response = client.get("/api/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert "Apple Silicon" in data["platform"]
+    assert isinstance(data["platform"], str) and data["platform"]
     assert "hardware" in data
-    assert "services" in data
+    llm = data["services"]["llm"]
+    assert llm["provider"] in ("ollama", "bedrock")
+    assert isinstance(llm["is_running"], bool)
+    assert llm["configured_model"] and llm["endpoint"]
 
 def test_marathi_chat_grounded_scenario_1():
     """Scenario 1: User speaks/types in Marathi and receives a grounded answer with citations."""

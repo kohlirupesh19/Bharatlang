@@ -11,7 +11,7 @@ from backend.app.services.rag.answer_language import detect_answer_language, nee
 from backend.app.services.rag.evidence_gate import REFUSAL, GateDecision, check_evidence
 from backend.app.services.rag.evidence_index import current_evidence_index
 from backend.app.services.rag.table_lookup import merge_ranked
-from backend.app.services.llm.ollama_client import ollama_client
+from backend.app.services.llm.provider import llm_client
 from backend.app.core.config import settings
 from backend.app.core.logging import logger
 
@@ -113,7 +113,7 @@ async def ensure_answer_language(
 async def _generate(user_query: str, normalized_query: str, evidence: List[Dict[str, Any]], language: str) -> Dict[str, Any]:
     """LLM answer from the gated evidence, the answer-language check, then the numeric faithfulness guard."""
     async def ask(extra_instruction: Optional[str] = None) -> Dict[str, Any]:
-        return await ollama_client.generate_rag_answer(
+        return await llm_client.generate_rag_answer(
             query=normalized_query,
             retrieved_chunks=evidence,
             language=language,

@@ -1,27 +1,37 @@
+import platform
+
 import psutil
 import torch
 from fastapi import APIRouter
 from backend.app.core.config import settings
-from backend.app.services.llm.ollama_client import ollama_client
+from backend.app.services.llm.provider import llm_client
 from backend.app.services.asr.manager import asr_manager
 from backend.app.services.rag.retrieval import faiss_retriever
 
 router = APIRouter(prefix="/api/health", tags=["System Health & Hardware Diagnostics"])
 
+
+def _llm_endpoint() -> str:
+    if settings.LLM_PROVIDER == "bedrock":
+        return f"bedrock-runtime.{settings.BEDROCK_REGION}.amazonaws.com"
+    return settings.OLLAMA_BASE_URL
+
+
 @router.get("")
 async def system_health():
     """
-    Returns live system diagnostics, hardware acceleration status (Apple Silicon MPS / Metal),
-    Ollama LLM connection state, and memory consumption.
+    Live system diagnostics: host platform and memory, accelerator availability,
+    LLM provider reachability, ASR engines and the RAG index.
     """
-    ollama_ok = await ollama_client.is_available()
+    llm_ok = await llm_client.is_available()
     mem = psutil.virtual_memory()
 
     return {
         "status": "healthy",
-        "platform": "Apple Silicon (macOS)",
+        "platform": platform.platform(),
         "hardware": {
             "torch_version": torch.__version__,
+            "cuda_available": torch.cuda.is_available(),
             "mps_available": torch.backends.mps.is_available(),
             "mps_built": torch.backends.mps.is_built(),
             "active_device": settings.DEVICE,
@@ -30,14 +40,14 @@ async def system_health():
             "memory_percent_used": mem.percent
         },
         "services": {
-            "ollama_local_llm": {
-                "configured_url": settings.OLLAMA_BASE_URL,
-                "configured_model": settings.OLLAMA_MODEL,
-                "is_running": ollama_ok
+            "llm": {
+                "provider": settings.LLM_PROVIDER,
+                "configured_model": llm_client.model_name,
+                "endpoint": _llm_endpoint(),
+                "is_running": llm_ok
             },
             "asr_engine": asr_manager.list_engines(),
             "rag_knowledge_base": faiss_retriever.get_stats(),
             "tts_voice": settings.TTS_VOICE
         }
     }
-

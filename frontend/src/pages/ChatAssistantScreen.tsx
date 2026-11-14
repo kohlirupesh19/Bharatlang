@@ -3,15 +3,19 @@ import { Send, Volume2, Globe, FileText, Star, RefreshCw } from 'lucide-react';
 import { apiClient } from '../services/api';
 import { ChatMessage } from '../types';
 import { getTranslation } from '../i18n/translations';
+import { dialectLabel } from '../utils/dialectLabel';
 
 interface ChatAssistantScreenProps {
   initialQuery?: string;
   selectedLanguage: string;
+  /** Called once initialQuery has been sent, so reopening Chat does not resend it. */
+  onInitialQueryConsumed?: () => void;
 }
 
 export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
   initialQuery,
-  selectedLanguage
+  selectedLanguage,
+  onInitialQueryConsumed
 }) => {
   const t = getTranslation(selectedLanguage);
 
@@ -27,6 +31,8 @@ export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackCorrection, setFeedbackCorrection] = useState('');
   const [feedbackSubmittedIds, setFeedbackSubmittedIds] = useState<Record<string, boolean>>({});
+  const [actionError, setActionError] = useState<string | null>(null);
+  const sentInitialQueryRef = useRef<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -40,9 +46,11 @@ export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
 
   // If initialQuery is passed from another screen (e.g. Home or Voice), submit it automatically
   useEffect(() => {
-    if (initialQuery && initialQuery.trim()) {
-      handleSendMessage(initialQuery);
-    }
+    const query = initialQuery?.trim();
+    if (!query || sentInitialQueryRef.current === query) return;
+    sentInitialQueryRef.current = query;
+    handleSendMessage(query);
+    onInitialQueryConsumed?.();
   }, [initialQuery]);
 
   const handleSendMessage = async (textToSend?: string) => {
@@ -79,13 +87,15 @@ export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.warn('Chat request failed:', err);
       const errorMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         sender: 'assistant',
-        original_text: 'Error generating grounded answer. Please verify backend services are active.',
-        answer: 'Error generating grounded answer. Please verify backend services are active.',
-        created_at: new Date().toISOString()
+        original_text: t.chat.errorAnswer,
+        answer: t.chat.errorAnswer,
+        created_at: new Date().toISOString(),
+        is_error: true
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
@@ -96,40 +106,39 @@ export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
   const handleTranslateToEnglish = async (msgId: string, text: string) => {
     if (englishTranslations[msgId]) return;
     setTranslatingId(msgId);
+    setActionError(null);
     try {
       const res = await apiClient.translateText(text, 'mr', 'en');
       setEnglishTranslations((prev) => ({
         ...prev,
         [msgId]: res.translated_text
       }));
-    } catch (e) {
-      console.error(e);
+    } catch (err: unknown) {
+      console.warn('Translation failed:', err);
+      setActionError(t.chat.actionFailed);
     } finally {
       setTranslatingId(null);
     }
   };
 
   const handleSubmitFeedback = async (msgId: string) => {
+    setActionError(null);
     try {
       await apiClient.submitFeedback(msgId, feedbackRating, feedbackCorrection);
       setFeedbackSubmittedIds((prev) => ({ ...prev, [msgId]: true }));
       setActiveFeedbackMsgId(null);
       setFeedbackCorrection('');
-    } catch (e) {
-      console.error(e);
+    } catch (err: unknown) {
+      console.warn('Feedback submission failed:', err);
+      setActionError(t.chat.actionFailed);
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-8.5rem)]">
       {/* Top Banner / Grounding Guarantee */}
-      <div className="bg-indigo-50/90 border border-indigo-200/90 px-4 py-2.5 rounded-2xl text-xs text-indigo-950 flex items-center justify-between mb-4 shadow-xs">
-        <span className="font-medium">
-          📌 <strong>{t.chat.sourcesTitle}:</strong> {t.chat.subtitle}
-        </span>
-        <span className="text-[11px] font-bold text-indigo-700 bg-white px-2.5 py-0.5 rounded-full border border-indigo-200 shrink-0">
-          Ollama Qwen2.5 1.5B Local
-        </span>
+      <div className="bg-indigo-50/90 border border-indigo-200/90 px-4 py-2.5 rounded-2xl text-xs text-indigo-950 mb-4 shadow-xs">
+        <span className="font-medium">📌 {t.chat.subtitle}</span>
       </div>
 
       {/* Messages Scroll Area */}
@@ -168,14 +177,9 @@ export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
                   /* Assistant Response */
                   <div className="space-y-3.5">
                     {/* Dialect Recognition Tag */}
-                    {msg.detected_dialect && (
-                      <div className="flex items-center space-x-2 text-[11px] pb-2 border-b border-slate-100">
-                        <span className="font-bold text-indigo-600">
-                          {t.chat.dialectBadge}: {msg.detected_dialect}
-                        </span>
-                        {msg.normalized_text && msg.normalized_text !== msg.original_text && (
-                          <span className="text-slate-400">• {t.chat.normalizedBadge}</span>
-                        )}
+                    {dialectLabel(msg.detected_dialect, t) && (
+                      <div className="text-[11px] pb-2 border-b border-slate-100 font-bold text-indigo-600">
+                        {t.chat.dialectBadge}: {dialectLabel(msg.detected_dialect, t)}
                       </div>
                     )}
 
@@ -187,7 +191,7 @@ export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
                     {/* English Translation View if generated */}
                     {englishTranslations[msg.id] && (
                       <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1">
-                        <span className="font-bold text-slate-900 block">English Translation:</span>
+                        <span className="font-bold text-slate-900 block">{t.chat.englishLabel}:</span>
                         <p className="whitespace-pre-wrap leading-relaxed">{englishTranslations[msg.id]}</p>
                       </div>
                     )}
@@ -227,10 +231,12 @@ export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
                             </div>
                           ))}
                         </div>
+                        <p className="text-[11px] text-slate-500">{t.chat.checkSource}</p>
                       </div>
                     )}
 
-                    {/* Footer Controls: Translate / Feedback / Latency */}
+                    {/* Footer Controls: Translate / Feedback */}
+                    {!msg.is_error && (
                     <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-400">
                       <div className="flex items-center space-x-2">
                         {/* Translate to English Button */}
@@ -249,14 +255,11 @@ export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
                           className="hover:text-indigo-600 font-semibold flex items-center space-x-1 px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-all border border-slate-200"
                         >
                           <Star className="w-3.5 h-3.5 text-amber-500" />
-                          <span>{feedbackSubmittedIds[msg.id] ? t.chat.feedbackSuccess.slice(0, 15) : t.chat.ratePrompt}</span>
+                          <span>{feedbackSubmittedIds[msg.id] ? t.chat.feedbackThanks : t.chat.ratePrompt}</span>
                         </button>
                       </div>
-
-                      {msg.latency_ms && (
-                        <span className="font-mono text-[11px] font-medium text-slate-400">{Math.round(msg.latency_ms)}ms</span>
-                      )}
                     </div>
+                    )}
 
                     {/* Inline Feedback Box if opened */}
                     {activeFeedbackMsgId === msg.id && (
@@ -311,6 +314,12 @@ export const ChatAssistantScreen: React.FC<ChatAssistantScreenProps> = ({
 
         <div ref={messagesEndRef} />
       </div>
+
+      {actionError && (
+        <div role="alert" className="mb-2 bg-red-50 border border-red-200 text-red-800 px-4 py-2 rounded-2xl text-xs">
+          {actionError}
+        </div>
+      )}
 
       {/* Input Box Footer */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-2 shadow-lg flex items-center space-x-2">

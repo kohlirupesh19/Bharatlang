@@ -60,6 +60,16 @@ class Settings(BaseSettings):
     FFMPEG_PATH: str = Field(default_factory=lambda: shutil.which("ffmpeg") or "ffmpeg")
     TESSERACT_PATH: str = Field(default_factory=lambda: shutil.which("tesseract") or "tesseract")
 
+    # Which LLM answers questions: a local Ollama daemon, or Amazon Bedrock (services/llm/provider.py)
+    LLM_PROVIDER: Literal["ollama", "bedrock"] = "ollama"
+
+    # Amazon Bedrock (Converse API). Credentials come from boto3's default chain:
+    # the EC2 instance role in production, an AWS profile / env keys in development.
+    BEDROCK_REGION: str = "ap-southeast-2"
+    BEDROCK_MODEL_ID: str = "qwen.qwen3-32b-v1:0"
+    BEDROCK_MAX_TOKENS: int = Field(default=600, ge=64)
+    BEDROCK_TIMEOUT_SECONDS: int = Field(default=60, ge=5)
+
     # Ollama Local LLM
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "qwen2.5:1.5b"
