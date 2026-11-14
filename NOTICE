@@ -1,0 +1,28 @@
+BharatLangTech AI (भारतलँगटेक एआय)
+Copyright 2026 Aakash Bhat and contributors
+
+This product includes software developed by Aakash Bhat and the
+BharatLangTech AI contributors (https://github.com/kohlirupesh19/Bharatlang).
+
+Licensed under the Apache License, Version 2.0 (see the LICENSE file).
+Under Section 4(d) of that licence, any redistribution of this software or of
+a derivative work must include a readable copy of this NOTICE file. Please
+credit "BharatLangTech AI by Aakash Bhat and contributors" in your
+documentation, about page or other attribution notices.
+
+Third-party components
+----------------------
+This licence covers the source code in this repository. Model weights and
+services the software downloads or calls at run time are NOT part of this
+repository and remain under their own licences and terms, among them:
+  - AI4Bharat IndicWhisper (Vistaar) Marathi speech model
+  - intfloat/multilingual-e5-small embedding model
+  - Qwen models served through Ollama or Amazon Bedrock
+  - Meta NLLB-200 (CC BY-NC 4.0, non-commercial use only)
+  - Surya OCR, Tesseract OCR data, Microsoft edge-tts voices
+Check each component's licence before redistributing it or using it
+commercially.
+
+The government documents (GRs, FAQs, guidelines) in backend/data/documents
+are public documents of the Government of Maharashtra and the Government of
+India. They are included for reference and are not covered by this licence.

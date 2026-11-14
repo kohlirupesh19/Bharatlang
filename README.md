@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/bharatlang_logo.png" alt="BharatLangTech AI logo" width="160">
+</p>
+
 # BharatLangTech AI (भारतलँगटेक एआय)
 
 A voice question-answering assistant for Maharashtra farmers. A farmer asks about government agricultural schemes in Marathi or the Varhadi (Vidarbha) dialect, by voice or text, and gets a Marathi answer drawn only from official government documents (GRs), with page citations, read aloud.
@@ -15,7 +19,7 @@ text  ────────────────────────�
 
 | Step | What runs | Code |
 |---|---|---|
-| Speech-to-text | `indicwhisper-medium-mr` (faster-whisper / CTranslate2) on the office GPU; `assemblyai` (cloud) on the AWS deployment | `backend/app/services/asr/` |
+| Speech-to-text | `indicwhisper-medium-mr` (faster-whisper / CTranslate2) on the desktop GPU; `assemblyai` (cloud) on the AWS deployment | `backend/app/services/asr/` |
 | Dialect normalisation | Lexicon-based Varhadi → standard Marathi. The citizen's original words are kept and searched alongside the normalised query | `services/translation/normalization.py`, `dialect_lexicon.py` |
 | Retrieval | `intfloat/multilingual-e5-small` embeddings (CPU) + FAISS flat index, plus a district × crop lookup that pulls the exact rate-table row | `services/rag/retrieval.py`, `table_lookup.py` |
 | Evidence gate | If the question names a district or crop that no retrieved chunk covers, the system refuses without calling the LLM | `services/rag/evidence_gate.py` |
@@ -56,9 +60,9 @@ The AWS account has no GPU, so voice questions there use AssemblyAI.
 
 ### Local vs AWS, measured end to end (2026-11-14)
 
-The same code ran on both machines (357 tests pass on each). Each item was sent 10 times to each deployment through the public API, from one client on the office network. The set was 12 graded typed questions (8 with figures checked against the GR tables, 4 that must be refused) and 4 recorded voice questions. Runner: `scripts/bench_deployments.py`; scorer: `scripts/bench_score.py`.
+The same code ran on both machines (357 tests pass on each). Each item was sent 10 times to each deployment through the public API, from one client on the local network. The set was 12 graded typed questions (8 with figures checked against the GR tables, 4 that must be refused) and 4 recorded voice questions. Runner: `scripts/bench_deployments.py`; scorer: `scripts/bench_score.py`.
 
-| | Office (local) | AWS |
+| | Desktop (local) | AWS |
 |---|---|---|
 | Typed questions correct | **120/120 (100%)** | 87/120 (72.5%) |
 | Voice questions correct | **40/40 (100%)** | 0/40 (0%) |
@@ -70,7 +74,7 @@ The same code ran on both machines (357 tests pass on each). Each item was sent 
 | First request after a restart | 9.7 s | 6.2 s |
 | Network overhead (median) | 0.02 s (LAN) | 0.4 s typed, 1.4 s voice (India → Sydney) |
 | What leaves the machine | answer text (for text-to-speech) | question, retrieved excerpts and audio (Bedrock, AssemblyAI), plus the answer text |
-| Availability | only while the office PC is on | 24/7 |
+| Availability | only while the desktop PC is on | 24/7 |
 | Access | local network or SSH tunnel | public HTTPS with a login |
 | Cost per 1,000 questions | not measured | not measured |
 
@@ -124,7 +128,7 @@ pnpm install
 pnpm dev                                    # http://localhost:5173
 ```
 
-The scripts in `scripts/*.sh` are the original macOS/Homebrew setup and assume Apple hardware. On Windows, the office box uses `scripts/start_services.ps1`.
+The scripts in `scripts/*.sh` are the original macOS/Homebrew setup and assume Apple hardware. On Windows, the desktop uses `scripts/start_services.ps1`.
 
 ---
 
@@ -194,4 +198,14 @@ scripts/          setup and service scripts, OCR and scoring tools
 
 Built with [faster-whisper](https://github.com/SYSTRAN/faster-whisper), AI4Bharat's IndicWhisper (Vistaar) Marathi model, [Sentence-Transformers](https://sbert.net) (`intfloat/multilingual-e5-small`), [FAISS](https://github.com/facebookresearch/faiss), [Ollama](https://ollama.com) and [Qwen](https://huggingface.co/Qwen), Amazon Bedrock, [Surya OCR](https://github.com/datalab-to/surya), [Tesseract](https://github.com/tesseract-ocr/tesseract), [PyMuPDF](https://pymupdf.readthedocs.io/), [FastAPI](https://fastapi.tiangolo.com/) and [React](https://react.dev/).
 
-The original README stated an Apache 2.0 licence, but no LICENSE file is committed yet.
+---
+
+## Licence
+
+Licensed under the **Apache License, Version 2.0**: see [`LICENSE`](LICENSE). You may use, modify and redistribute this software, including commercially, provided you:
+
+- keep the copyright notice and include the [`NOTICE`](NOTICE) file with any redistribution or derivative work;
+- give credit: *"BharatLangTech AI by Aakash Bhat and contributors"*;
+- state any significant changes you made.
+
+The licence covers the source code only. Model weights and online services the software downloads or calls (IndicWhisper, multilingual-e5, Qwen, NLLB-200, Surya, Tesseract data, edge-tts) keep their own licences. NLLB-200 in particular is non-commercial (CC BY-NC 4.0). The government documents in `backend/data/documents/` are public documents and are not covered by this licence.

@@ -1,7 +1,7 @@
 # Architecture
 
 BharatLangTech AI answers questions about Maharashtra agricultural schemes in Marathi and Varhadi, using only official government documents as evidence. It runs in two configurations:
-- **Office GPU box** (development): all models local except text-to-speech.
+- **Desktop GPU box** (development): all models local except text-to-speech.
 - **AWS** (online demo): no GPU, so the LLM is Amazon Bedrock and speech-to-text is AssemblyAI.
 
 The code is the same; `.env` chooses.
@@ -88,7 +88,7 @@ flowchart TD
 
 ## 3. Corpus build (`services/rag/corpus/`)
 
-The corpus is driven by `backend/data/documents/manifest.json`. Marathi GRs are always OCR'd, because legacy Marathi fonts corrupt PDF text layers. Surya OCR runs on the office GPU (`scripts/ocr_corpus.ps1`), and `build.py` then processes the results:
+The corpus is driven by `backend/data/documents/manifest.json`. Marathi GRs are always OCR'd, because legacy Marathi fonts corrupt PDF text layers. Surya OCR runs on the desktop GPU (`scripts/ocr_corpus.ps1`), and `build.py` then processes the results:
 - `ocr_blocks.py`: maps pages back to real PDF pages and reattaches split captions.
 - `corrections.py`: applies verified OCR fixes.
 - `quality.py`: quality gate.
@@ -103,7 +103,7 @@ The corpus is driven by `backend/data/documents/manifest.json`. Marathi GRs are 
 |---|---|
 | `LLM_PROVIDER` | `ollama` or `bedrock` |
 | `ASR_ACTIVE_MODEL` | Which ASR engine is active |
-| `WHISPER_DEVICE` / `WHISPER_COMPUTE_TYPE` | `cuda` + `int8_float16` on the office GPU, `cpu` + `int8` elsewhere |
+| `WHISPER_DEVICE` / `WHISPER_COMPUTE_TYPE` | `cuda` + `int8_float16` on the desktop GPU, `cpu` + `int8` elsewhere |
 | `EMBEDDING_DEVICE` | Keep on `cpu`: one short query is ~20 ms, and it saves ~0.6 GB of VRAM |
 | `EVIDENCE_GATE_ENABLED`, `TABLE_LOOKUP_ENABLED`, `ANSWER_LANGUAGE_CHECK_ENABLED` | A/B switches for the safety layers |
 | `LLM_CONTEXT_CHUNKS`, `LLM_CONTEXT_CHARS_PER_CHUNK` | How much evidence the LLM sees (4 × 600) |

@@ -1,6 +1,6 @@
 # Installation
 
-Tested on Windows 11 (office box, NVIDIA GPU) and Ubuntu 24.04 (AWS, CPU only). The original macOS scripts in `scripts/*.sh` are kept, but they assume Apple hardware and Homebrew and are no longer the reference setup.
+Tested on Windows 11 (desktop, NVIDIA GPU) and Ubuntu 24.04 (AWS, CPU only). The original macOS scripts in `scripts/*.sh` are kept, but they assume Apple hardware and Homebrew and are no longer the reference setup.
 
 ## 1. Prerequisites
 
@@ -46,7 +46,7 @@ Models download on first use into the Hugging Face cache: `intfloat/multilingual
 
 Copy `.env.example` to `.env`. Typical settings:
 
-**Office / local GPU**
+**Desktop / local GPU**
 ```ini
 LLM_PROVIDER=ollama
 OLLAMA_MODEL=qwen3.5:9b
@@ -85,7 +85,7 @@ cd frontend && pnpm install && pnpm dev     # http://localhost:5173
 
 Production build of the frontend: `cd frontend && pnpm run build` (type-checks with `tsc -b`, output in `frontend/dist/`). Serve `dist/` from any static server that also proxies `/api` and `/static` to the backend.
 
-Windows office box: `powershell -File scripts\start_services.ps1` starts Ollama, uvicorn and Vite detached.
+Windows desktop: `powershell -File scripts\start_services.ps1` starts Ollama, uvicorn and Vite detached.
 
 Check it is up: `GET http://127.0.0.1:8000/api/health` shows the LLM provider and whether it is reachable, the ASR engines and the index size.
 
